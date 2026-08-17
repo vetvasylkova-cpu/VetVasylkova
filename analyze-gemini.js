@@ -1,108 +1,134 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
 
-// 1. Системний промпт з усіма ветеринарними вимогами
-const SYSTEM_PROMPT = `
-Ви — провідний ветеринарний нутриціолог та експерт з аналізу складів кормів для домашніх тварин (котів та собак). 
-Ваше завдання — провести глибокий ветеринарно-дієтологічний аналіз корму на основі наданих даних про склад та гарантований аналіз.
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const geminiApiKey = process.env.GEMINI_API_KEY;
 
-### 1. Розрахунок та аналіз на суху речовину (Dry Matter Basis — DM):
-- Перерахуйте всі макронутрієнти з урахуванням вологості за формулою: 
-  % Елемента (DM) = (% Елемента у кормі / (100% - % Вологості)) * 100%
-- Надайте порівняльні значення на суху речовину для:
-  * Білок (DM %)
-  * Жир (DM %)
-  * Сира клітковина (DM %)
-  * Сира зола (DM %)
-  * Вуглеводи / NFE (DM %) = 100% - (Білок% + Жир% + Клітковина% + Зола% + Вологість%) розраховано на DM.
-- Оцініть відповідність отриманих DM-показників нормам FEDIAF/AAFCO для відповідного виду та вікової категорії тварини.
+if (!supabaseUrl || !supabaseKey || !geminiApiKey) {
+  console.error("Помилка: Не задані необхідні змінні оточення.");
+  process.exit(1);
+}
 
-### 2. Джерела білків (Протеїновий профіль):
-- Первинні джерела (перші 1–3 інгредієнти): чітко вкажіть тип (дегідратоване м'ясо, свіже м'ясо, м'ясні субпродукти, рослинний білок).
-- Вторинні джерела: додаткові м'ясні або рослинні білки (яйця, білкові конвеєри, гідролізати).
-- Третинні джерела: білкові добавки та амінокислоти (L-лізин, DL-метіонін, таурин).
-- Оцінка якості білка: відсоток тваринного білка проти рослинного, його біологічна цінність та засвоюваність.
+const supabase = createClient(supabaseUrl, supabaseKey);
+const genAI = new GoogleGenerativeAI(geminiApiKey);
 
-### 3. Мінерально-вітамінний профіль та біодоступність:
-- Аналіз форм мінералів:
-  * Оксиди (Oxides) — низька біодоступність (наприклад, оксид цинку, оксид марганцю). Позначте як мінус.
-  * Сульфати / Хлориди (Sulfates/Chlorides) — середня біодоступність.
-  * Хелати / Органічні форми (Chelates, Proteinates, Amino acid complexes) — висока біодоступність. Позначте як великий плюс.
-- Співвідношення кальцію та фосфору (Ca:P): розрахуйте точне співвідношення (ідеальне для котів/собак: від 1.1:1 до 1.4:1).
-- Вітамінний профіль: оцінка наявності та балансу ключових вітамінів (A, D3, E, група B).
+async function analyzeFeeds() {
+  // Звертаємося до таблиці feeds
+  const { data: feeds, error } = await supabase
+    .from('feeds')
+    .select('*')
+    .or('protein_dm_pct.is.null,vet_summary.is.null');
 
-### 4. Спеціалізовані ветеринарні показники:
-- Вплив на сечовидільну систему:
-  * Розрахунок або оцінка очікуваного pH сечі (якщо є дані або за складниками).
-  * Показники підлужнення/закислення та S/O Index (профілактика струвітів та оксалатів кальцію).
-- Жирні кислоти (Omega-6 / Omega-3): оцініть наявність джерел Омега-3 (рибячий жир, олія лосося, насіння льону), їх співвідношення та протизапальний потенціал.
-- Хонопротектори: наявність та дозування глюкозаміну і хондроїтину (для підтримки суглобів).
-- Метаболічні добавки: наявність L-карнітину (жироспалювання/серце), таурину (обов'язково для котів), пребіотиків (FOS/MOS).
+  if (error) {
+    console.error("Помилка отримання даних з Supabase:", error);
+    return;
+  }
 
-### Формат відповіді:
-Надайте чітку, структуровану відповідь у форматі JSON (або Markdown із таблицями), що містить:
-1. Таблицю розрахунку DM (Dry Matter).
-2. Ієрархію джерел білка.
-3. Оцінку якості та біодоступності мінералів.
-4. Ветеринарний висновок зі спеціалізованими примітками (pH, S/O, Омега 3/6, хондропротектори).
-5. Підсумковий рейтинг корму (Загальна оцінка від 1 до 10 та ключові плюс/мінуси).
+  if (!feeds || feeds.length === 0) {
+    console.log("Немає нових кормів для аналізу.");
+    return;
+  }
+
+  console.log(`Знайдено ${feeds.length} кормів для аналізу.`);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  for (const feed of feeds) {
+    console.log(`Аналізуємо: ${feed.title || feed.name || feed.id}`);
+
+    const prompt = `
+Ви — провідний ветеринарний дієтолог. Проаналізуйте склад та гарантований аналіз даного корму.
+
+Корм: ${feed.title || feed.name || ''}
+Інгредієнти: ${feed.ingredients || 'Не вказано'}
+Показники (As Fed / Як є):
+- Протеїн: ${feed.protein || 'N/A'}%
+- Жир: ${feed.fat || 'N/A'}%
+- Зола: ${feed.ash || 'N/A'}%
+- Клітковина: ${feed.fiber || 'N/A'}%
+- Вологість: ${feed.moisture || 'N/A'}%
+- Кальцій: ${feed.calcium || 'N/A'}%
+- Фосфор: ${feed.phosphorus || 'N/A'}%
+- Магній: ${feed.magnesium || 'N/A'}%
+- Натрій: ${feed.sodium || 'N/A'}%
+- Омега-3: ${feed.omega_3 || 'N/A'}%
+- Омега-6: ${feed.omega_6 || 'N/A'}%
+
+Завдання:
+1. Перерахуйте протеїн, жир, золу, клітковину та вуглеводи (NFE) на Суху Речовину (Dry Matter / DM). 
+   Формула: DM % = Показник / (100 - Вологість) * 100. Якщо вологість не вказана, беріть 10% для сухого та 80% для вологого корму.
+2. Розрахуйте співвідношення Ca:P (Кальцій до Фосфору) та Омега-6:Омега-3.
+3. Оцініть відсоток м'ясних інгредієнтів та частку тваринного білка проти рослинного.
+4. Оцініть вплив на pH сечі та ризик сечокам'яної хвороби (струвіти/оксалати).
+5. Складіть короткий ветеринарний висновок українською мовою.
+
+Поверніть ВИНЯТКОВО валидний JSON без маркдаун-обгорток (\`\`\`json):
+{
+  "moisture_pct": 10,
+  "protein_dm_pct": 32.5,
+  "fat_dm_pct": 16.2,
+  "ash_dm_pct": 7.1,
+  "fiber_dm_pct": 2.5,
+  "carbs_dm_pct": 41.7,
+  "calcium_pct": 1.1,
+  "phosphorus_pct": 0.9,
+  "ca_p_ratio": 1.22,
+  "magnesium_pct": 0.08,
+  "sodium_pct": 0.3,
+  "omega_3_pct": 0.5,
+  "omega_6_pct": 2.2,
+  "omega_6_3_ratio": 4.4,
+  "meat_content_pct": 60,
+  "animal_protein_pct": 80,
+  "plant_protein_pct": 20,
+  "urine_ph_estimate": "Нейтральний або слабокислий (6.2 - 6.5)",
+  "urolithiasis_risk": "Низький ризик струвітів, оптимальний рівень мінералів",
+  "vet_summary": "Збалансований корм з хорошим вмістом тваринного білка..."
+}
 `;
 
-// Ініціалізація Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+      
+      const cleanJson = text.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+      const parsed = JSON.parse(cleanJson);
 
-// 2. Головна функція аналізу
-export async function analyzeFeedData(feedData) {
-  const moisture = feedData.guaranteedAnalysis?.moisture || 8.0;
-  const dmFactor = 100 / (100 - moisture);
+      const { error: updateError } = await supabase
+        .from('feeds')
+        .update({
+          moisture_pct: parsed.moisture_pct,
+          protein_dm_pct: parsed.protein_dm_pct,
+          fat_dm_pct: parsed.fat_dm_pct,
+          ash_dm_pct: parsed.ash_dm_pct,
+          fiber_dm_pct: parsed.fiber_dm_pct,
+          carbs_dm_pct: parsed.carbs_dm_pct,
+          calcium_pct: parsed.calcium_pct,
+          phosphorus_pct: parsed.phosphorus_pct,
+          ca_p_ratio: parsed.ca_p_ratio,
+          magnesium_pct: parsed.magnesium_pct,
+          sodium_pct: parsed.sodium_pct,
+          omega_3_pct: parsed.omega_3_pct,
+          omega_6_pct: parsed.omega_6_pct,
+          omega_6_3_ratio: parsed.omega_6_3_ratio,
+          meat_content_pct: parsed.meat_content_pct,
+          animal_protein_pct: parsed.animal_protein_pct,
+          plant_protein_pct: parsed.plant_protein_pct,
+          urine_ph_estimate: parsed.urine_ph_estimate,
+          urolithiasis_risk: parsed.urolithiasis_risk,
+          vet_summary: parsed.vet_summary
+        })
+        .eq('id', feed.id);
 
-  const calculatedDM = {
-    proteinDM: (feedData.guaranteedAnalysis.protein * dmFactor).toFixed(2),
-    fatDM: (feedData.guaranteedAnalysis.fat * dmFactor).toFixed(2),
-    fiberDM: (feedData.guaranteedAnalysis.fiber * dmFactor).toFixed(2),
-    ashDM: (feedData.guaranteedAnalysis.ash * dmFactor).toFixed(2),
-    moisture: moisture
-  };
-
-  const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-pro",
-    systemInstruction: SYSTEM_PROMPT 
-  });
-
-  const prompt = `
-Проаналізуй наступний корм для тварин:
-
-Назва корму: ${feedData.title}
-Тип корму: ${feedData.type}
-Цільова тварина: ${feedData.targetPet}
-
-Інгредієнти (склад):
-${feedData.ingredientsText}
-
-Гарантований аналіз (як є, у вологій масі):
-- Протеїн: ${feedData.guaranteedAnalysis.protein}%
-- Жир: ${feedData.guaranteedAnalysis.fat}%
-- Сира клітковина: ${feedData.guaranteedAnalysis.fiber}%
-- Зола: ${feedData.guaranteedAnalysis.ash}%
-- Вологість: ${moisture}%
-- Кальцій: ${feedData.guaranteedAnalysis.calcium || 'Не вказано'}%
-- Фосфор: ${feedData.guaranteedAnalysis.phosphorus || 'Не вказано'}%
-
-Попередньо розраховані значення на суху речовину (DM):
-- Протеїн (DM): ${calculatedDM.proteinDM}%
-- Жир (DM): ${calculatedDM.fatDM}%
-- Клітковина (DM): ${calculatedDM.fiberDM}%
-- Зола (DM): ${calculatedDM.ashDM}%
-
-Додаткові добавки та вітаміни:
-${feedData.additivesText || 'Дивись у загальному складі'}
-`;
-
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
-  } catch (error) {
-    console.error("Помилка під час аналізу через Gemini:", error);
-    throw error;
+      if (updateError) {
+        console.error(`Помилка оновлення запису ID ${feed.id}:`, updateError);
+      } else {
+        console.log(`Успішно оновлено корм ID ${feed.id}`);
+      }
+    } catch (e) {
+      console.error(`Помилка обробки корму ID ${feed.id}:`, e);
+    }
   }
 }
+
+analyzeFeeds();

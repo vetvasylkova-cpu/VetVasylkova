@@ -1,5 +1,5 @@
 {
-  "name": "feed-analyzer",
+  "name": "vet-vasylkova",
   "version": "1.0.0",
   "type": "module",
   "main": "analyze-gemini.js",

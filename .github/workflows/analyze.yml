@@ -13,16 +13,16 @@ jobs:
       - name: Отримання коду з репозиторію
         uses: actions/checkout@v4
 
-      - name: Встановлення Node.js
+      - name: Встановлення Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
-      - name: Налаштування та встановлення залежностей
+      - name: Встановлення залежностей
         run: |
           npm init -y
           npm pkg set type="module"
-          npm install @supabase/supabase-js @google/genai@latest --save
+          npm install @supabase/supabase-js @google/genai@latest ws
 
       - name: Запуск аналізу кормів
         env:

@@ -4,7 +4,7 @@ on:
   schedule:
     # Запуск щодня о 09:00 за київським часом (06:00 UTC)
     - cron: '0 6 * * *'
-  workflow_dispatch: # Дозволяє запускати аналіз вручну кнопкою з GitHub
+  workflow_dispatch:
 
 jobs:
   run-analysis:
@@ -19,8 +19,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Встановлення залежностей
-        run: npm install
+      - name: Автоматичне створення конфігурації та встановлення залежностей
+        run: |
+          npm init -y
+          npm pkg set type="module"
+          npm install @supabase/supabase-js @google/genai
 
       - name: Запуск аналізу кормів
         env:

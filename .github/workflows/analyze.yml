@@ -18,11 +18,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Автоматичне створення конфігурації та встановлення залежностей
+      - name: Налаштування та встановлення залежностей
         run: |
           npm init -y
           npm pkg set type="module"
-          npm install @supabase/supabase-js @google/genai
+          npm install @supabase/supabase-js @google/genai@latest --save
 
       - name: Запуск аналізу кормів
         env:

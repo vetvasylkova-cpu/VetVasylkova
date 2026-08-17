@@ -1,9 +1,9 @@
-name: Feed Analysis Workflow
+name: Run Gemini Analysis
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch: # Дозволяє запускати вручну
+  schedule:
+    - cron: '0 0 * * *' # Автоматичний запуск щодня (за бажанням)
 
 jobs:
   analyze:
@@ -16,14 +16,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '20'
 
-      - name: Install Dependencies
-        run: npm install @google/generative-ai @supabase/supabase-js
+      # Ініціалізуємо чистий package.json та встановлюємо тільки правильні пакети
+      - name: Install dependencies
+        run: |
+          npm init -y
+          npm install @google/generative-ai @supabase/supabase-js
 
-      - name: Run Gemini Analysis
-        run: node analyze-gemini.js
+      - name: Run Gemini analysis script
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node analyze-gemini.js

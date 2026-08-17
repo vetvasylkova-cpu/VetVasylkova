@@ -1,0 +1,30 @@
+name: Auto Gemini Feed Analysis
+
+on:
+  schedule:
+    # Запуск щодня о 09:00 за київським часом (06:00 UTC)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Дозволяє запускати аналіз вручну кнопкою з GitHub
+
+jobs:
+  run-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Отримання коду з репозиторію
+        uses: actions/checkout@v4
+
+      - name: Встановлення Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Встановлення залежностей
+        run: npm install
+
+      - name: Запуск аналізу кормів
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node analyze-gemini.js

@@ -1,8 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createClient } from '@supabase/supabase-js';
+console.log("DEBUG: Checking env variables...");
+console.log("GEMINI_API_KEY exists:", !!process.env.GEMINI_API_KEY);
+console.log("SUPABASE_URL exists:", !!process.env.SUPABASE_URL);
+console.log("SUPABASE_KEY exists:", !!process.env.SUPABASE_KEY);
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseKey = process.env.SUPABASE_KEY;
 const geminiApiKey = process.env.GEMINI_API_KEY;
 
 if (!supabaseUrl || !supabaseKey || !geminiApiKey) {

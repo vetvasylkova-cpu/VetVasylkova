@@ -1,7 +1,5 @@
-console.log("DEBUG: Checking env variables...");
-console.log("GEMINI_API_KEY exists:", !!process.env.GEMINI_API_KEY);
-console.log("SUPABASE_URL exists:", !!process.env.SUPABASE_URL);
-console.log("SUPABASE_KEY exists:", !!process.env.SUPABASE_KEY);
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
@@ -43,7 +41,7 @@ async function analyzeFeeds() {
 Інгредієнти: ${feed.ingredients || 'Не вказано'}
 Протеїн: ${feed.protein || 'N/A'}%, Жир: ${feed.fat || 'N/A'}%, Зола: ${feed.ash || 'N/A'}%, Клітковина: ${feed.fiber || 'N/A'}%, Вологість: ${feed.moisture || 'N/A'}%
 
-Поверни ВИНЯТКОВО валидний JSON без маркдауну:
+Поверни ВИНЯТКОВО валідний JSON без маркдауну:
 {
   "moisture_pct": 10,
   "protein_dm_pct": 32.5,

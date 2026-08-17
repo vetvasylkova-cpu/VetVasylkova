@@ -29,9 +29,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 async function runAnalysis() {
-  console.log('🚀 З’єднання встановлено! Запитуємо неопрацьовані записи з "База кормів"...');
+  console.log('🚀 З’єднання встановлено! Запитуємо дані з таблиці "База кормів"...');
 
-  // Отримуємо до 5 кормів, у яких ще не заповнено поле "Оцінка /10"
+  // Беремо перші 5 записів, де "Оцінка /10" ще не заповнена
   const { data: feeds, error } = await supabase
     .from('База кормів')
     .select('*')
@@ -44,14 +44,14 @@ async function runAnalysis() {
   }
 
   if (!feeds || feeds.length === 0) {
-    console.log('✅ Усі корми в таблиці вже проаналізовані!');
+    console.log('✅ Усі корми в таблиці "База кормів" вже проаналізовані!');
     return;
   }
 
   console.log(`🔍 Знайдено кормів для обробки: ${feeds.length}`);
 
   for (const feed of feeds) {
-    const feedName = feed['Назва корму'] || feed['Бренд'] || `ID ${feed.id}`;
+    const feedName = feed['Назва корму'] || feed['Бренд'] || `Запис №${feed.id}`;
     console.log(`🤖 Gemini аналізує: ${feedName}...`);
 
     const prompt = `
@@ -92,7 +92,6 @@ async function runAnalysis() {
 
       const result = JSON.parse(response.text);
 
-      // Записуємо аналіз у відповідні колонки таблиці "База кормів"
       const { error: updateError } = await supabase
         .from('База кормів')
         .update({
@@ -100,7 +99,7 @@ async function runAnalysis() {
           'Оцінка /10': Number(result.rating),
           'Кому підійде': result.suitable,
           'Кому не підійде': result.not_suitable,
-          'Дата': new Date().toISOString().split('T')[0] // Формат YYYY-MM-DD
+          'Дата': new Date().toISOString().split('T')[0]
         })
         .eq('id', feed.id);
 

@@ -1,104 +1,32 @@
-import { createClient } from '@supabase/supabase-js';
-import { GoogleGenAI } from '@google/genai';
+name: Auto Gemini Feed Analysis
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
-// Перевірка змінних оточення
-if (!SUPABASE_URL || !SUPABASE_URL.startsWith('http')) {
-  console.error('❌ ПОМИЛКА: SUPABASE_URL відсутній або має некоректний формат!');
-  process.exit(1);
-}
+jobs:
+  run-analysis:
+    runs-on: ubuntu-latest
 
-if (!SUPABASE_SERVICE_KEY) {
-  console.error('❌ ПОМИЛКА: SUPABASE_SERVICE_KEY відсутній!');
-  process.exit(1);
-}
+    steps:
+      - name: Отримання коду з репозиторію
+        uses: actions/checkout@v4
 
-if (!GEMINI_API_KEY) {
-  console.error('❌ ПОМИЛКА: GEMINI_API_KEY відсутній!');
-  process.exit(1);
-}
+      - name: Встановлення Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+      - name: Налаштування та встановлення залежностей
+        run: |
+          npm init -y
+          npm pkg set type="module"
+          npm install @supabase/supabase-js @google/genai@latest --save
 
-// ... далі залишається решта вашого коду для аналізу
-
-async function processAllFeeds() {
-  console.log('🚀 Починаємо аналіз кормів через Gemini API...');
-
-  // 1. Отримуємо корми з таблиці "База кормів"
-  const { data: feeds, error } = await supabase
-    .from('База кормів')
-    .select('*');
-
-  if (error) {
-    console.error('Помилка отримання кормів з Supabase:', error);
-    return;
-  }
-
-  console.log(`Знайдено кормів: ${feeds.length}`);
-
-  for (const feed of feeds) {
-    const feedName = feed['Назва корму'] || 'Невідомий корм';
-    console.log(`🤖 Аналізуємо через Gemini: ${feedName}...`);
-
-    try {
-      const prompt = `
-        Проаналізуй склад корму для тварин та надай оцінку:
-        - Назва: ${feed['Назва корму']}
-        - Бренд: ${feed['Бренд']}
-        - Клас: ${feed['Клас']}
-        - Для кого: ${feed['Для кого']}
-        - Тип корму: ${feed['Тип корму']}
-        - Беззерновий: ${feed['Grain-free']}
-        - Білки: ${feed['Білки %']}%, Жири: ${feed['Жири %']}%, Клітковина: ${feed['Клітковина %']}%, Зола: ${feed['Зола %']}%
-
-        Поверни відповідь у форматі JSON з такими полями:
-        {
-          "rating": число від 1 до 10 (ціле або дробове),
-          "suitableFor": "короткий текст (1-2 речення), кому підійде цей корм",
-          "notSuitableFor": "короткий текст (1-2 речення), кому не підійде цей корм"
-        }
-      `;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
-        contents: prompt,
-        config: { responseMimeType: 'application/json' }
-      });
-
-    const result = JSON.parse(response.text);
-
-// Округлюємо оцінку до цілого числа для колонки int64
-const roundedRating = Math.round(Number(result.rating) || 5);
-
-const { error: updateError } = await supabase
-  .from('База кормів')
-  .update({
-    'Оцінка /10': roundedRating,
-    'Кому підійде': result.suitableFor,
-    'Кому не підійде': result.notSuitableFor
-  })
-  .eq('Назва корму', feed['Назва корму']);
-
-if (updateError) {
-  console.error(`Помилка оновлення ${feedName}:`, updateError.message);
-} else {
-  console.log(`✅ Успішно проаналізовано: ${feedName} (Оцінка: ${roundedRating}/10)`);
-}
-
-// Пауза 1 секунда між запитами, щоб API не видавало помилку 503
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-    } catch (err) {
-      console.error(`Помилка під час аналізу ${feedName}:`, err.message);
-    }
-  }
-
-  console.log('🎉 Безкоштовний аналіз усіх кормів завершено!');
-}
-
-processAllFeeds();
+      - name: Запуск аналізу кормів
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node analyze-gemini.js

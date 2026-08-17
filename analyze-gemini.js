@@ -21,7 +21,7 @@ if (!GEMINI_API_KEY) {
   process.exit(1);
 }
 
-// Ініціалізація Supabase із вимкненим WebSocket (запобігає помилкам Node 20)
+// Ініціалізація Supabase із вимкненим WebSocket (запобігає помилкам Node 22)
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false },
   realtime: { disabled: true }

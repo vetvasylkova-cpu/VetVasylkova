@@ -1,5 +1,5 @@
-name: Run Gemini Analysis
-
+- name: Install dependencies
+        run: npm install
 on:
   workflow_dispatch: # Дозволяє запускати вручну
   schedule:

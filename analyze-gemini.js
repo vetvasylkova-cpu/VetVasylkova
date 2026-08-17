@@ -8,16 +8,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// Перевірка секретів
-if (!SUPABASE_URL || !SUPABASE_URL.startsWith('http')) {
-  console.error('❌ ПОМИЛКА: SUPABASE_URL відсутній або має некоректний формат!');
-  process.exit(1);
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-
-// Перевірка наявності секретів
+// Перевірка змінних оточення
 if (!SUPABASE_URL || !SUPABASE_URL.startsWith('http')) {
   console.error('❌ ПОМИЛКА: SUPABASE_URL відсутній або має некоректний формат!');
   process.exit(1);
@@ -33,7 +24,6 @@ if (!GEMINI_API_KEY) {
   process.exit(1);
 }
 
-// Ініціалізація Supabase із вимкненим WebSocket (запобігає помилкам Node 22)
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false },
   realtime: { disabled: true }
@@ -42,13 +32,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 async function runAnalysis() {
-  console.log('🚀 Початок аналізу кормів...');
+  console.log('🚀 З’єднання встановлено! Розпочинаємо аналіз...');
   
-  // ВСТАВТЕ СВІЙ КОД АНАЛІЗУ НИЖЧЕ:
-  // --------------------------------------------------
-  // Приклад:
-  // const { data, error } = await supabase.from('feeds').select('*');
-  // --------------------------------------------------
+  // Вставте сюди вашу основну логіку роботи з Supabase та Gemini
 }
 
-runAnalysis();
+runAnalysis().catch((err) => {
+  console.error('❌ Помилка виконання:', err);
+  process.exit(1);
+});

@@ -1,32 +1,33 @@
-name: Auto Gemini Feed Analysis
+name: Feed Analysis Workflow
 
 on:
-  schedule:
-    - cron: '0 6 * * *'
-  workflow_dispatch:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Дозволяє запускати вручну з вкладки Actions
 
 jobs:
-  run-analysis:
+  analyze:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Отримання коду з репозиторію
+      # 1. Завантажуємо ваш код з GitHub
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Встановлення Node.js 22
+      # 2. Налаштовуємо Node.js версії 22
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Встановлення залежностей
-        run: |
-          npm init -y
-          npm pkg set type="module"
-          npm install @supabase/supabase-js @google/genai@latest ws
+      # 3. Встановлюємо необхідні бібліотеки прямо під час виконання
+      - name: Install required NPM packages
+        run: npm install @google/generative-ai @supabase/supabase-js
 
-      - name: Запуск аналізу кормів
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # 4. Запускаємо ваш аналіз з секретними ключами
+      - name: Run Gemini Analysis
         run: node analyze-gemini.js
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}

@@ -31,7 +31,18 @@ if search:
 
 # Вивід даних
 st.subheader("Список кормів")
-st.dataframe(filtered_df[['title', 'vet_summary', 'protein_dm', 'fat_dm']], use_container_width=True)
+# Замість простого списку, виведемо з рейтингом
+st.subheader("Список кормів з рейтингом")
+# Робимо кольорові індикатори для рейтингу
+def color_rating(val):
+    color = 'red' if val < 4 else 'orange' if val < 7 else 'green'
+    return f'color: {color}; font-weight: bold'
+
+st.dataframe(
+    filtered_df[['title', 'rating', 'flaws', 'vet_summary']]
+    .style.applymap(color_rating, subset=['rating']),
+    use_container_width=True
+)
 
 # Порівняння
 st.subheader("Порівняння двох кормів")

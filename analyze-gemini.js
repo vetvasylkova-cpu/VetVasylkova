@@ -63,7 +63,7 @@ let responseText = result.response.text();
 // Очищуємо відповідь від зайвих markdown-тегів, якщо вони з'явилися
 responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
 
-let analysis;
+ analysis;
 try {
   analysis = JSON.parse(responseText);
 } catch (e) {

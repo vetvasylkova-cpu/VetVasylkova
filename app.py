@@ -43,11 +43,33 @@ st.dataframe(
     .style.applymap(color_rating, subset=['rating']),
     use_container_width=True
 )
-# Перевіряємо, які колонки реально є в DataFrame, щоб уникнути помилки Key Error
+# Перевіряємо, які колонки реально є в DataFrame
 available_columns = ['title']
-for col in ['rating', 'flaws', 'vet_summary', 'protein_dm', 'fat_dm']:
+for col in ['rating', 'flaws', 'vet_summary']:
     if col in filtered_df.columns:
         available_columns.append(col)
+
+st.subheader("Список кормів з аналізом")
+
+if 'rating' in filtered_df.columns:
+    def color_rating(val):
+        try:
+            val_int = int(val)
+            color = 'red' if val_int < 4 else 'orange' if val_int < 7 else 'green'
+            return f'color: {color}; font-weight: bold'
+        except:
+            return ''
+
+    # Безпечний виклик стилів, який працює як на старих, так і на нових версіях Pandas
+    styled_df = filtered_df[available_columns]
+    if hasattr(styled_df.style, 'map'):
+        styled_df = styled_df.style.map(color_rating, subset=['rating'])
+    else:
+        styled_df = styled_df.style.applymap(color_rating, subset=['rating'])
+
+    st.dataframe(styled_df, use_container_width=True)
+else:
+    st.dataframe(filtered_df[available_columns], use_container_width=True)
 
 st.subheader("Список кормів з аналізом")
 

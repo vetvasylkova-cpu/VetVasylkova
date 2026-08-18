@@ -11,63 +11,120 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
-const testUrl = 'https://pethouse.ua/ua/shop/koshkam/suhoi-korm/naturesprotection/natures-protection-cat-neutered/';
 
-async function scrapeSingleFeed() {
-  console.log(`Завантажуємо сторінку: ${testUrl}`);
+// Головна функція для пошуку нових кормів через Sitemap
+async function scrapeNewFeedsFromSitemap() {
+  console.log("Завантажуємо карту сайту Pethouse...");
   
   try {
-    const { data: html } = await axios.get(testUrl, {
+    // 1. Завантажуємо головний sitemap або сторінку магазину з товарами
+    // Зазвичай сайти мають головний sitemap.xml, або окремий для товарів
+    const sitemapUrl = 'https://pethouse.ua/sitemap.xml'; 
+    
+    const { data: sitemapXml } = await axios.get(sitemapUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
       }
     });
-    const $ = cheerio.load(html);
 
-    const title = $('h1').text().trim();
-
-    // Витягуємо тільки блоки з описом, складом та аналізом, ігноруючи відгуки та шапку
-    let composition = '';
+    const $ = cheerio.load(sitemapXml, { xmlMode: true });
     
-    // Шукаємо текст у вкладках товару
-    $('.goods-tab-content, .product-tabs__content, .tab-pane, .goods-description').each((_, el) => {
-      const text = $(el).text().trim();
-      if (text.length > 20) {
-        composition += text + '\n\n';
+    // Збираємо всі URL, які містять шлях до сухого корму для котів
+    let feedUrls = [];
+    $('loc').each((_, el) => {
+      const url = $(el).text().trim();
+      // Фільтруємо тільки котячі сухі корми
+      if (url.includes('/shop/koshkam/suhoi-korm/')) {
+        feedUrls.push(url);
       }
     });
 
-    // Якщо спеціальні блоки не витягнулися, беруться елементи з текстом "Склад" або "Аналіз"
-    if (!composition) {
-      $('p, div, li').each((_, el) => {
-        const t = $(el).text();
-        if (t.includes('Склад') || t.includes('Аналітичний склад') || t.includes('Протеїн') || t.includes('Білок')) {
-          composition += t + ' ';
-        }
-      });
+    console.log(`Знайдено посилань на сухі корми в Sitemap: ${feedUrls.length}`);
+
+    if (feedUrls.length === 0) {
+      console.log("Не вдалося знайти посилання у sitemap.xml. Перевірте структуру сайту.");
+      return;
     }
 
-    const cleanComposition = composition.replace(/\s+/g, ' ').trim();
-
-    console.log("=== ТІЛЬКИ СКЛАД ТА АНАЛІЗ ===");
-    console.log("Назва:", title);
-    console.log("Знайдений склад (символів):", cleanComposition.length);
-    console.log("Текст складових:", cleanComposition.substring(0, 500));
-
-    // Оновлюємо або вставляємо запис у Supabase
-    const { data, error } = await supabase
+    // 2. Отримуємо список посилань, які вже є в нашій базі Supabase, щоб не завантажувати їх повторно
+    const { data: existingFeeds, error: dbError } = await supabase
       .from('feeds')
-      .insert([{ title: title, ingredients: cleanComposition || $('body').text().substring(0, 5000) }]);
+      .select('title'); // або якщо ви збережете шлях/URL, але поки порівнюватимемо за назвою/наявністю
 
-    if (error) {
-      console.error("Помилка Supabase:", error);
-    } else {
-      console.log(`✅ Успішно збережено в базу!`);
+    if (dbError) {
+      console.error("Помилка читання бази Supabase:", dbError);
+      return;
     }
+
+    console.log(`Вже збережено в базі кормів: ${existingFeeds ? existingFeeds.length : 0}`);
+
+    // Візьмемо для прикладу перші 3 нових посилання за один запуск (щоб не перевантажувати ліміти GitHub Actions / Gemini)
+    let processedCount = 0;
+    const limitToProcess = 3; 
+
+    for (const url of feedUrls) {
+      if (processedCount >= limitToProcess) break;
+
+      try {
+        console.log(`\nОбробляємо посилання: ${url}`);
+        
+        // Завантажуємо сторінку конкретного корму
+        const { data: html } = await axios.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+        
+        const page$ = cheerio.load(html);
+        const title = page$('h1').text().trim();
+
+        if (!title) {
+          console.log("Не знайдено назву корму, пропускаємо.");
+          continue;
+        }
+
+        // Перевіряємо, чи такий корм уже є в базі за назвою
+        const alreadyExists = existingFeeds.some(f => f.title === title);
+        if (alreadyExists) {
+          console.log(`Корм "${title}" вже є в базі. Пропускаємо.`);
+          continue;
+        }
+
+        // Витягуємо склад
+        let composition = '';
+        page$('.goods-tab-content, .product-tabs__content, .tab-pane, .goods-description').each((_, el) => {
+          const text = page$(el).text().trim();
+          if (text.length > 20) composition += text + '\n\n';
+        });
+
+        if (!composition) {
+          composition = page$('body').text().substring(0, 5000);
+        }
+
+        const cleanComposition = composition.replace(/\s+/g, ' ').trim();
+
+        // 3. Зберігаємо новий корм у Supabase
+        const { error: insertError } = await supabase
+          .from('feeds')
+          .insert([{ title: title, ingredients: cleanComposition.substring(0, 4000) }]);
+
+        if (insertError) {
+          console.error("Помилка запису в Supabase:", insertError);
+        } else {
+          console.log(`✅ Новий корм "${title}" успішно додано до бази з Sitemap!`);
+          processedCount++;
+        }
+
+      } catch (itemErr) {
+        console.error(`Помилка обробки сторінки ${url}:`, itemErr.message);
+      }
+    }
+
+    console.log(`\nСкрапінг завершено. Додано нових кормів: ${processedCount}`);
 
   } catch (error) {
-    console.error("Помилка парсингу:", error.message);
+    console.error("Помилка завантаження Sitemap:", error.message);
   }
 }
 
-scrapeSingleFeed();
+scrapeNewFeedsFromSitemap();

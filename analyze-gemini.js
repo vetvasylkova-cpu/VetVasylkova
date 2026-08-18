@@ -38,11 +38,36 @@ async function analyzeFeeds() {
   for (const feed of feeds) {
     console.log(`Аналізуємо: ${feed.title || feed.name || feed.id}`);
 
-    const prompt = `
-Ви — ветеринарний дієтолог. Проаналізуйте склад та показники корму:
-Корм: ${feed.title || feed.name || ''}
-Інгредієнти: ${feed.ingredients || 'Не вказано'}
-Протеїн: ${feed.protein || 'N/A'}%, Жир: ${feed.fat || 'N/A'}%, Зола: ${feed.ash || 'N/A'}%, Клітковина: ${feed.fiber || 'N/A'}%, Вологість: ${feed.moisture || 'N/A'}%
+    // Оновлений промпт для Gemini
+const prompt = `
+Аналізуй склад цього корму: "${title}"
+Склад: ${cleanComposition}
+
+Виконай наступне:
+1. Постав рейтинг від 1 до 10 на основі біологічної відповідності (високий вміст м'яса = 9-10, зернові на першому місці = 2-3).
+2. Знайди приховані недоліки (наприклад: "продукти переробки тваринного походження", кукурудза, пшениця, незрозумілі джерела жиру, надлишок вуглеводів).
+3. Надай короткий ветеринарний коментар.
+
+Поверни відповідь виключно у форматі JSON:
+{
+  "rating": 7,
+  "flaws": "Вміст кукурудзяного глютену, нечітке джерело жиру",
+  "vet_summary": "Середній корм, потребує доповнення вітамінами"
+}
+`;
+
+// Після отримання відповіді від Gemini:
+const analysis = JSON.parse(result.response.text());
+
+// Оновлення запису в Supabase
+await supabase
+  .from('feeds')
+  .update({ 
+    rating: analysis.rating, 
+    flaws: analysis.flaws, 
+    vet_summary: analysis.vet_summary 
+  })
+  .eq('title', title);
 
 Поверни ВИНЯТКОВО валідний JSON без маркдауну:
 {

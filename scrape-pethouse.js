@@ -10,7 +10,9 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  realtime: { enabled: false }
+});
 
 // Список категорій, які потрібно сканувати (коти і собаки, сухий та вологий корм)
 const categories = [

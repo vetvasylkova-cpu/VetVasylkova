@@ -5,8 +5,8 @@
   "main": "analyze-gemini.js",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "@supabase/supabase-js": "^2.45.0"
-  "axios": "^1.7.5",
+    "@supabase/supabase-js": "^2.45.0",
+    "axios": "^1.7.5",
     "cheerio": "^1.0.0"
   }
 }

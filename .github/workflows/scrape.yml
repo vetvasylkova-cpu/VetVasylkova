@@ -1,4 +1,4 @@
-name: Run Pethouse Scraper
+name: Run Pethouse Scraper and Analyzer
 
 on:
   workflow_dispatch:
@@ -6,28 +6,29 @@ on:
     - cron: '0 8 * * *' # Буде запускатися щодня о 08:00
 
 jobs:
-  run-scraper:
+  run-pipeline:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
-    - name: Install dependencies
-      run: npm install  # <-- ОСЬ ЦЕЙ РЯДОК МАЄ БУТИ ОБОВ'ЯЗКОВО
-
-    - name: Run analyzer
-      run: node analyze-gemini.js
-          
       - name: Install dependencies
         run: npm install
-        
+
       - name: Run scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: node scrape-pethouse.js
+
+      - name: Run Gemini analyzer
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node analyze-gemini.js

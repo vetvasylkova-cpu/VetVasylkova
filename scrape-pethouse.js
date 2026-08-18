@@ -12,70 +12,69 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Головна функція для пошуку нових кормів через Sitemap
-async function scrapeNewFeedsFromSitemap() {
-  console.log("Завантажуємо карту сайту Pethouse...");
+// Сторінка категорії сухих кормів для котів на Pethouse
+const categoryUrl = 'https://pethouse.ua/ua/shop/koshkam/suhoi-korm/';
+
+async function scrapeNewFeedsFromCategory() {
+  console.log(`Завантажуємо сторінку категорії: ${categoryUrl}`);
   
   try {
-    // 1. Завантажуємо головний sitemap або сторінку магазину з товарами
-    // Зазвичай сайти мають головний sitemap.xml, або окремий для товарів
-    const sitemapUrl = 'https://pethouse.ua/sitemap.xml'; 
-    
-    const { data: sitemapXml } = await axios.get(sitemapUrl, {
+    const { data: html } = await axios.get(categoryUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
       }
     });
 
-    const $ = cheerio.load(sitemapXml, { xmlMode: true });
+    const $ = cheerio.load(html);
     
-    // Збираємо всі URL, які містять шлях до сухого корму для котів
+    // Збираємо всі посилання на товари з картки товару в каталозі
     let feedUrls = [];
-    $('loc').each((_, el) => {
-      const url = $(el).text().trim();
-      // Фільтруємо тільки котячі сухі корми
-      if (url.includes('/shop/koshkam/suhoi-korm/')) {
-        feedUrls.push(url);
+    
+    // Шукаємо посилання, які ведуть на товари в категорії
+    $('a').each((_, el) => {
+      const href = $(el).attr('href');
+      if (href && href.includes('/ua/shop/koshkam/suhoi-korm/') && href.length > 35) {
+        // Формуємо повне посилання, якщо воно відносне
+        const fullUrl = href.startsWith('http') ? href : `https://pethouse.ua${href}`;
+        if (!feedUrls.includes(fullUrl)) {
+          feedUrls.push(fullUrl);
+        }
       }
     });
 
-    console.log(`Знайдено посилань на сухі корми в Sitemap: ${feedUrls.length}`);
+    console.log(`Знайдено унікальних посилань на корми в каталозі: ${feedUrls.length}`);
 
     if (feedUrls.length === 0) {
-      console.log("Не вдалося знайти посилання у sitemap.xml. Перевірте структуру сайту.");
+      console.log("Не вдалося знайти посилання на товари на сторінці категорії.");
       return;
     }
 
-    // 2. Отримуємо список посилань, які вже є в нашій базі Supabase, щоб не завантажувати їх повторно
+    // Отримуємо список кормів, які вже є в базі Supabase
     const { data: existingFeeds, error: dbError } = await supabase
       .from('feeds')
-      .select('title'); // або якщо ви збережете шлях/URL, але поки порівнюватимемо за назвою/наявністю
+      .select('title');
 
     if (dbError) {
       console.error("Помилка читання бази Supabase:", dbError);
       return;
     }
 
-    console.log(`Вже збережено в базі кормів: ${existingFeeds ? existingFeeds.length : 0}`);
-
-    // Візьмемо для прикладу перші 3 нових посилання за один запуск (щоб не перевантажувати ліміти GitHub Actions / Gemini)
     let processedCount = 0;
-    const limitToProcess = 3; 
+    const limitToProcess = 3; // Обробляємо по 3 нові корми за раз
 
     for (const url of feedUrls) {
       if (processedCount >= limitToProcess) break;
 
       try {
-        console.log(`\nОбробляємо посилання: ${url}`);
+        console.log(`\nПеревіряємо посилання: ${url}`);
         
-        // Завантажуємо сторінку конкретного корму
-        const { data: html } = await axios.get(url, {
+        const { data: pageHtml } = await axios.get(url, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
           }
         });
         
-        const page$ = cheerio.load(html);
+        const page$ = cheerio.load(pageHtml);
         const title = page$('h1').text().trim();
 
         if (!title) {
@@ -83,8 +82,8 @@ async function scrapeNewFeedsFromSitemap() {
           continue;
         }
 
-        // Перевіряємо, чи такий корм уже є в базі за назвою
-        const alreadyExists = existingFeeds.some(f => f.title === title);
+        // Перевіряємо, чи є вже такий корм у базі
+        const alreadyExists = existingFeeds && existingFeeds.some(f => f.title === title);
         if (alreadyExists) {
           console.log(`Корм "${title}" вже є в базі. Пропускаємо.`);
           continue;
@@ -103,7 +102,7 @@ async function scrapeNewFeedsFromSitemap() {
 
         const cleanComposition = composition.replace(/\s+/g, ' ').trim();
 
-        // 3. Зберігаємо новий корм у Supabase
+        // Зберігаємо новий корм у Supabase
         const { error: insertError } = await supabase
           .from('feeds')
           .insert([{ title: title, ingredients: cleanComposition.substring(0, 4000) }]);
@@ -111,7 +110,7 @@ async function scrapeNewFeedsFromSitemap() {
         if (insertError) {
           console.error("Помилка запису в Supabase:", insertError);
         } else {
-          console.log(`✅ Новий корм "${title}" успішно додано до бази з Sitemap!`);
+          console.log(`✅ Новий корм "${title}" успішно додано до бази з категорії!`);
           processedCount++;
         }
 
@@ -123,8 +122,8 @@ async function scrapeNewFeedsFromSitemap() {
     console.log(`\nСкрапінг завершено. Додано нових кормів: ${processedCount}`);
 
   } catch (error) {
-    console.error("Помилка завантаження Sitemap:", error.message);
+    console.error("Помилка завантаження категорії:", error.message);
   }
 }
 
-scrapeNewFeedsFromSitemap();
+scrapeNewFeedsFromCategory();

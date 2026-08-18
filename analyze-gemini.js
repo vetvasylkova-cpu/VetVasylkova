@@ -30,7 +30,10 @@ async function analyzeFeeds() {
   }
 
   console.log(`Знайдено ${feeds.length} кормів для аналізу.`);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash",
+  generationConfig: { responseMimeType: "application/json" }
+});
 
   for (const feed of feeds) {
     console.log(`Аналізуємо: ${feed.title || feed.name || feed.id}`);

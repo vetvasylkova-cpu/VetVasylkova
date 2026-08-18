@@ -76,7 +76,7 @@ try {
   };
 }
 // Після отримання відповіді від Gemini:
-const analysis = JSON.parse(result.response.text());
+analysis = JSON.parse(result.response.text());
 
 // Оновлення запису в Supabase
 await supabase

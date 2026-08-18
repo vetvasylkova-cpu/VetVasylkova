@@ -1,9 +1,9 @@
 name: Run Pethouse Scraper
 
 on:
-  workflow_dispatch:   # Запуск кнопкою вручну
-  # schedule:
-  #   - cron: '0 8 * * *' # Розклад (можна розкоментувати, коли знадобиться)
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *' # Буде запускатися щодня о 08:00
 
 jobs:
   run-scraper:

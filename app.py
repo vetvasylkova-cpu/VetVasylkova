@@ -43,7 +43,7 @@ st.dataframe(
     .style.applymap(color_rating, subset=['rating']),
     use_container_width=True
 )
-# Перевіряємо, які колонки реально є в DataFrame
+# Визначаємо доступні колонки
 available_columns = ['title']
 for col in ['rating', 'flaws', 'vet_summary']:
     if col in filtered_df.columns:
@@ -51,15 +51,8 @@ for col in ['rating', 'flaws', 'vet_summary']:
 
 st.subheader("Список кормів з аналізом")
 
-if 'rating' in filtered_df.columns:
-    def color_rating(val):
-        try:
-            val_int = int(val)
-            color = 'red' if val_int < 4 else 'orange' if val_int < 7 else 'green'
-            return f'color: {color}; font-weight: bold'
-        except:
-            return ''
-
+# Виводимо звичайну таблицю без конфліктних стилів Pandas
+st.dataframe(filtered_df[available_columns], use_container_width=True)
     # Безпечний виклик стилів, який працює як на старих, так і на нових версіях Pandas
     styled_df = filtered_df[available_columns]
     if hasattr(styled_df.style, 'map'):

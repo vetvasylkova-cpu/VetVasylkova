@@ -14,7 +14,7 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Тестове посилання на корм з Pethouse (можете замінити на будь-яке інше з їхнього сайту)
-const testUrl = 'https://pethouse.ua/ua/shop/koshkam/suhoi-korm/acana/acana-bountiful-catch-suhoi-korm-dlya-koshek-s-riboi/';
+const testUrl = 'https://pethouse.ua/ua/shop/koshkam/suhoi-korm/naturesprotection/natures-protection-cat-neutered/';
 
 async function scrapeSingleFeed() {
   console.log(`Завантажуємо сторінку: ${testUrl}`);

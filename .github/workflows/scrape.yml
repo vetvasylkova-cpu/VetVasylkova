@@ -1,28 +1,27 @@
 name: Run Pethouse Scraper
 
 on:
-- cron: '0 8 * * *' # Запускати щодня о 8:00 ранку за UTC
-  workflow_dispatch: # Дозволяє запускати ручками
+  workflow_dispatch:   # Запуск кнопкою вручну
+  # schedule:
+  #   - cron: '0 8 * * *' # Розклад (можна розкоментувати, коли знадобиться)
 
 jobs:
-  scrape:
+  run-scraper:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-
-      - name: Install Dependencies
+          node-version: '20'
+          
+      - name: Install dependencies
         run: npm install
-
-      - name: Run Scraper
-        run: node scrape-pethouse.js
+        
+      - name: Run scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: node scrape-pethouse.js

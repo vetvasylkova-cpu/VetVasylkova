@@ -68,9 +68,23 @@ async function analyzeFeeds() {
   "vet_summary": "Збалансований корм з хорошим вмістом білка"
 }
 `;
-
+// Додаємо функцію для повторної спроби при помилці 503
+async function generateWithRetry(model, prompt, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const result = await model.generateContent(prompt);
+      return await model.generateContent(prompt);
+    } catch (err) {
+      if (err.status === 503 && attempt < maxRetries) {
+        console.log(`Сервер перевантажений (503). Спроба ${attempt} з ${maxRetries}. Чекаємо 5 секунд...`);
+        await new Promise(resolve => setTimeout(resolve, 5000)); // пауза 5 секунд
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+    try {
+     const result = await generateWithRetry(model, prompt);
       const text = result.response.text().trim();
       const cleanJson = text.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
       const parsed = JSON.parse(cleanJson);

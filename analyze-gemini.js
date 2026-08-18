@@ -49,11 +49,8 @@ async function analyzeFeeds() {
                 contents: prompt,
             });
 
-            let responseText = response.text.trim();
-            // Очищуємо від можливих markdown тегів
-            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-
-            const analysis = JSON.parse(responseText);
+           const result = await model.generateContent(prompt);
+let responseText = result.response.text();
 
             // Оновлюємо дані в Supabase
             const { error: updateError } = await supabase

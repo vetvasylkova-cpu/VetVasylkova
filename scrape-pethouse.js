@@ -11,8 +11,6 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Точна сторінка корму
 const testUrl = 'https://pethouse.ua/ua/shop/koshkam/suhoi-korm/naturesprotection/natures-protection-cat-neutered/';
 
 async function scrapeSingleFeed() {
@@ -21,59 +19,54 @@ async function scrapeSingleFeed() {
   try {
     const { data: html } = await axios.get(testUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8,en;q=0.7'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
       }
     });
     const $ = cheerio.load(html);
 
-    // 1. Беремо назву товару
     const title = $('h1').text().trim();
 
-    // 2. Витягуємо блоки, де Pethouse тримає опис, склад та аналітичний склад
-    let compositionText = '';
-
-    // Шукаємо вкладки/блоки з описом та складом
-    $('.goods-description, .product-description, .tab-content, #tab-1, #tab-2, .goods-tabs').each((i, el) => {
-      compositionText += $(el).text() + ' ';
+    // Витягуємо тільки блоки з описом, складом та аналізом, ігноруючи відгуки та шапку
+    let composition = '';
+    
+    // Шукаємо текст у вкладках товару
+    $('.goods-tab-content, .product-tabs__content, .tab-pane, .goods-description').each((_, el) => {
+      const text = $(el).text().trim();
+      if (text.length > 20) {
+        composition += text + '\n\n';
+      }
     });
 
-    // Якщо точкові блоки не знайшлися, беремо основний блок товару
-    if (!compositionText || compositionText.trim().length < 50) {
-      compositionText = $('.goods-card, .product-card, main').text();
+    // Якщо спеціальні блоки не витягнулися, беруться елементи з текстом "Склад" або "Аналіз"
+    if (!composition) {
+      $('p, div, li').each((_, el) => {
+        const t = $(el).text();
+        if (t.includes('Склад') || t.includes('Аналітичний склад') || t.includes('Протеїн') || t.includes('Білок')) {
+          composition += t + ' ';
+        }
+      });
     }
 
-    // Очищаємо від зайвих пробілів
-    const cleanIngredients = compositionText.replace(/\s+/g, ' ').trim();
+    const cleanComposition = composition.replace(/\s+/g, ' ').trim();
 
-    console.log("=== РЕЗУЛЬТАТ ПАРСИНГУ ===");
+    console.log("=== ТІЛЬКИ СКЛАД ТА АНАЛІЗ ===");
     console.log("Назва:", title);
-    console.log("Розмір чистого складу:", cleanIngredients.length, "символів");
-    console.log("Уривок тексту:", cleanIngredients.substring(0, 300));
+    console.log("Знайдений склад (символів):", cleanComposition.length);
+    console.log("Текст складових:", cleanComposition.substring(0, 500));
 
-    if (!title) {
-      console.log("Не вдалося знайти назву.");
-      return;
-    }
-
-    // 3. Записуємо чисті дані в Supabase
+    // Оновлюємо або вставляємо запис у Supabase
     const { data, error } = await supabase
       .from('feeds')
-      .insert([
-        { 
-          title: title, 
-          ingredients: cleanIngredients.substring(0, 4000) // 4000 символів - ідеально для 1 корму
-        }
-      ]);
+      .insert([{ title: title, ingredients: cleanComposition || $('body').text().substring(0, 5000) }]);
 
     if (error) {
-      console.error("Помилка запису в Supabase:", error);
+      console.error("Помилка Supabase:", error);
     } else {
-      console.log(`✅ Корм "${title}" успішно збережено з чистим складом!`);
+      console.log(`✅ Успішно збережено в базу!`);
     }
 
   } catch (error) {
-    console.error("Помилка парсингу сайту:", error.message);
+    console.error("Помилка парсингу:", error.message);
   }
 }
 

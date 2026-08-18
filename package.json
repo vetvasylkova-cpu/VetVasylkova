@@ -2,11 +2,8 @@
   "name": "vet-vasylkova",
   "version": "1.0.0",
   "type": "module",
-  "main": "analyze-gemini.js",
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
-    "@supabase/supabase-js": "^2.45.0",
-    "axios": "^1.7.5",
-    "cheerio": "^1.0.0"
+    "@google/genai": "^0.1.1",
+    "@supabase/supabase-js": "^2.0.0"
   }
 }

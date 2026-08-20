@@ -3,7 +3,7 @@ name: Run Pethouse Scraper and Analyzer
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *' # Буде запускатися щодня о 08:00
+    - cron: '0 8 * * *'
 
 jobs:
   run-pipeline:
@@ -26,7 +26,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: node scrape-pethouse.js
 
-        - name: Run Gemini analyzer
+      - name: Run Gemini analyzer
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

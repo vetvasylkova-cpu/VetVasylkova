@@ -1,9 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Перевірка наявності ключів
+// Перевірка кожного ключа окремо
+console.log("--- ПЕРЕВІРКА КЛЮЧІВ ---");
+console.log("SUPABASE_URL:", process.env.SUPABASE_URL ? "ОК (підключено)" : "❌ ВІДСУТНІЙ");
+console.log("SUPABASE_SERVICE_KEY:", process.env.SUPABASE_SERVICE_KEY ? "ОК (підключено)" : "❌ ВІДСУТНІЙ");
+console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "ОК (підключено)" : "❌ ВІДСУТНІЙ");
+console.log("------------------------");
+
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY || !process.env.GEMINI_API_KEY) {
-    console.error("Помилка: Не задано змінні середовища (SUPABASE_URL, SUPABASE_SERVICE_KEY або GEMINI_API_KEY)");
+    console.error("Зупинка: один або кілька ключів не передалися з GitHub.");
     process.exit(1);
 }
 
@@ -54,13 +60,10 @@ async function analyzeFeeds() {
         try {
             const result = await model.generateContent(prompt);
             let responseText = result.response.text().trim();
-            
-            // Очищуємо від можливих markdown тегів
             responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
 
             const analysis = JSON.parse(responseText);
 
-            // Оновлюємо дані в Supabase
             const { error: updateError } = await supabase
                 .from('feeds')
                 .update({

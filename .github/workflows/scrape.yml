@@ -21,7 +21,8 @@ jobs:
         run: |
           rm -rf node_modules package-lock.json
           npm install
-          
+
+
       - name: Run scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

@@ -19,8 +19,8 @@ if (!supabaseUrl || !supabaseKey || !geminiKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 const genAI = new GoogleGenerativeAI(geminiKey);
 
-// Використовуємо актуальну модель Gemini 2.5 Flash
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+// Актуальна модель Gemini
+const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
 async function analyzeFeeds() {
     console.log("Шукаємо корми без аналізу в базі даних...");

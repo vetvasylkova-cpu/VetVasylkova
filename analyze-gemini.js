@@ -1,27 +1,35 @@
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Ініціалізація клієнтів
+// Перевірка наявності ключів
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY || !process.env.GEMINI_API_KEY) {
+    console.error("Помилка: Не задано змінні середовища (SUPABASE_URL, SUPABASE_SERVICE_KEY або GEMINI_API_KEY)");
+    process.exit(1);
+}
+
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 async function analyzeFeeds() {
-    // Отримуємо корми, у яких ще немає рейтингу або аналізу
+    console.log("Шукаємо корми без аналізу в базі даних...");
+    
     const { data: feeds, error } = await supabase
         .from('feeds')
         .select('*')
         .is('rating', null);
 
     if (error) {
-        console.error("Помилка завантаження кормів:", error.message);
+        console.error("Помилка завантаження кормів з бази:", error.message);
         return;
     }
 
     if (!feeds || feeds.length === 0) {
-        console.log("Немає нових кормів для аналізу.");
+        console.log("Немає нових кормів для аналізу. Все оновлено!");
         return;
     }
+
+    console.log(`Знайдено кормів для аналізу: ${feeds.length}`);
 
     for (const feed of feeds) {
         console.log(`Аналізую корм: ${feed.title}`);
@@ -33,7 +41,7 @@ async function analyzeFeeds() {
 Виконай наступне:
 1. Постав рейтинг від 1 до 10 на основі біологічної відповідності (високий вміст м'яса та мінімум рослинних наповнювачів = 8-10, зернові на перших місцях або незрозумілі субпродукти = 1-4).
 2. Знайди приховані недоліки (наприклад: "кукурудзяний глютен", "пшениця", "нечітке джерело жиру", "гідролізований білок невідомого походження" тощо).
-3. Надай короткий ветеринарний висновок.
+3. Надай короткий ветеринарний висновок українською мовою.
 
 Поверни відповідь СУВОРО у форматі JSON без жодних додаткових символів чи маркування формату (без \`\`\`json):
 {
@@ -44,13 +52,13 @@ async function analyzeFeeds() {
 `;
 
         try {
-            const response = await ai.models.generateContent({
-                model: 'gemini-1.5-flash',
-                contents: prompt,
-            });
+            const result = await model.generateContent(prompt);
+            let responseText = result.response.text().trim();
+            
+            // Очищуємо від можливих markdown тегів
+            responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
 
-           const result = await model.generateContent(prompt);
-let responseText = result.response.text();
+            const analysis = JSON.parse(responseText);
 
             // Оновлюємо дані в Supabase
             const { error: updateError } = await supabase

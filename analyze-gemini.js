@@ -1,20 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Перевірка кожного ключа окремо
+// Автоматичний пошук ключа за різними варіаціями назви
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE;
+const geminiKey = process.env.GEMINI_API_KEY;
+
 console.log("--- ПЕРЕВІРКА КЛЮЧІВ ---");
-console.log("SUPABASE_URL:", process.env.SUPABASE_URL ? "ОК (підключено)" : "❌ ВІДСУТНІЙ");
-console.log("SUPABASE_SERVICE_KEY:", process.env.SUPABASE_SERVICE_KEY ? "ОК (підключено)" : "❌ ВІДСУТНІЙ");
-console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "ОК (підключено)" : "❌ ВІДСУТНІЙ");
+console.log("SUPABASE_URL:", supabaseUrl ? "ОК (підключено)" : "❌ ВІДСУТНІЙ");
+console.log("SUPABASE_SERVICE_KEY:", supabaseKey ? "ОК (підключено)" : "❌ ВІДСУТНІЙ");
+console.log("GEMINI_API_KEY:", geminiKey ? "ОК (підключено)" : "❌ ВІДСУТНІЙ");
 console.log("------------------------");
 
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY || !process.env.GEMINI_API_KEY) {
+if (!supabaseUrl || !supabaseKey || !geminiKey) {
     console.error("Зупинка: один або кілька ключів не передалися з GitHub.");
     process.exit(1);
 }
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const supabase = createClient(supabaseUrl, supabaseKey);
+const genAI = new GoogleGenerativeAI(geminiKey);
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 async function analyzeFeeds() {

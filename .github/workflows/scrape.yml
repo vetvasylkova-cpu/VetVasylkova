@@ -17,9 +17,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install dependencies
-        run: npm install
-
+     - name: Install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
       - name: Run scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

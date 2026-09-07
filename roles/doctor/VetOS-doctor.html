@@ -1,0 +1,1370 @@
+﻿<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vet Vasylkova — Клінічна нутриціологічна платформа (Doctor Pro)</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    :root {
+      --emerald: #2C3E2D;
+      --emerald-deep: #1A2E1B;
+      --green: #4CAF50;
+      --green-light: #E8F5E9;
+      --green-mid: #A5D6A7;
+      --amber: #F59E0B;
+      --red: #EF4444;
+      --text: #1A2E1B;
+      --text-muted: #6B7280;
+      --border: #D1D5DB;
+      --border-light: #E5E7EB;
+      --bg: #F7FAF7;
+      --white: #FFFFFF;
+      --shadow: 0 1px 3px rgba(44,62,45,0.06);
+      --shadow-lg: 0 8px 24px rgba(44,62,45,0.10);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; line-height: 1.4; font-size: 13px; }
+    .platform-container { width: 100%; max-width: 1720px; }
+
+    .header-bar {
+      background: var(--emerald); color: #fff; padding: 12px 22px; border-radius: var(--radius);
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; box-shadow: var(--shadow);
+    }
+    .header-brand { display: flex; align-items: center; gap: 10px; }
+    .header-brand h1 { font-size: 16.5px; font-weight: 600; color: #fff; letter-spacing: 0.2px; }
+    .header-brand p { font-size: 11px; color: var(--green-mid); }
+    .btn-exit { font-size: 11.5px; background: rgba(255,255,255,0.12); padding: 5px 12px; border-radius: 16px; color: #fff; text-decoration: none; font-weight: 500; }
+    .btn-exit:hover { background: rgba(255,255,255,0.22); }
+
+    .nav-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+    .tab-btn {
+      flex: 1; padding: 10px 14px; border: 1px solid var(--border); background: var(--white);
+      border-radius: var(--radius-sm); font-weight: 600; font-size: 12.5px; color: var(--text-muted);
+      cursor: pointer; text-align: center; transition: all 0.15s ease;
+    }
+    .tab-btn.active { background: var(--emerald); color: #fff; border-color: var(--emerald); box-shadow: var(--shadow); }
+
+    .module-pane { display: none; }
+    .module-pane.active { display: block; }
+
+    .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; border: 1px solid var(--border); }
+    h2 { font-size: 16px; font-weight: 700; color: var(--emerald); margin-bottom: 3px; }
+    h3 { font-size: 13px; font-weight: 700; color: var(--emerald-deep); margin: 14px 0 6px 0; }
+    p.subtitle { color: var(--text-muted); font-size: 11.5px; margin-bottom: 14px; }
+
+    .form-input, .form-select, textarea {
+      width: 100%; padding: 6px 9px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 12px; color: var(--text); background: var(--white); outline: none;
+    }
+    .form-input:focus, .form-select:focus, textarea:focus { border-color: var(--green); }
+
+    .btn-primary { padding: 8px 14px; background: var(--emerald); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-primary:hover { background: var(--emerald-deep); }
+    .btn-secondary { padding: 5px 9px; background: var(--green-light); color: var(--emerald); border: 1px solid var(--green-mid); border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .btn-secondary:hover { background: var(--green-mid); color: var(--emerald-deep); }
+
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10.5px; font-weight: 600; }
+    .badge.success { background: var(--green-light); color: var(--emerald); border: 1px solid var(--green-mid); }
+    .badge.warning { background: #FFFBEB; color: var(--amber); border: 1px solid var(--amber); }
+    .badge.alert { background: #FEF2F2; color: var(--red); border: 1px solid var(--red); }
+    .badge.info { background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; }
+
+    .diet-constructor-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); position: relative; }
+    .diet-top-grid { display: grid; grid-template-columns: 250px 270px 1fr 200px 145px; gap: 10px; align-items: start; }
+    @media (max-width: 1200px) { .diet-top-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 768px) { .diet-top-grid { grid-template-columns: 1fr; } }
+
+    .diet-panel { background: var(--bg); border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 8px 10px; }
+    .diet-input, .diet-select { background: #ffffff; color: var(--text); border: 1px solid var(--border); padding: 4px 6px; border-radius: 5px; width: 100%; font-size: 11.5px; font-weight: 500; margin-bottom: 4px; outline: none; }
+    .diet-label { font-size: 9.5px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1px; display: block; }
+    
+    .diet-subtabs { display: flex; gap: 4px; margin: 10px 0 6px 0; overflow-x: auto; }
+    .diet-subtab-btn { padding: 5px 10px; background: var(--white); border: 1px solid var(--border); color: var(--text-muted); border-radius: var(--radius-sm); font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .diet-subtab-btn.active { background: var(--emerald); color: #fff; border-color: var(--emerald); }
+
+    .action-btn-stack { display: flex; flex-direction: column; gap: 4px; }
+    .action-btn-stack .diet-subtab-btn { text-align: center; width: 100%; }
+
+    .clinical-indicator-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin-top: 10px; }
+    .indicator-box { background: var(--green-light); border: 1px solid var(--green-mid); border-radius: var(--radius-sm); padding: 6px; text-align: center; position: relative; cursor: help; }
+    .indicator-box-title { font-size: 9px; font-weight: 600; text-transform: uppercase; color: var(--emerald); margin-bottom: 1px; }
+    .indicator-box-val { font-size: 14px; font-weight: 700; color: var(--emerald-deep); }
+    .indicator-box-sub { font-size: 9px; margin-top: 1px; font-weight: 500; }
+
+    .table-container { width: 100%; overflow-x: auto; margin-top: 8px; border: 1px solid var(--border-light); border-radius: 6px; }
+    .matrix-table { width: 100%; border-collapse: collapse; background: #ffffff; font-size: 11px; }
+    .matrix-table th, .matrix-table td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #f1f5f9; white-space: nowrap; }
+    .matrix-table th { background: #f8fafc; font-weight: 600; color: var(--text-muted); font-size: 10.5px; }
+    .matrix-table td:nth-child(2), .matrix-table th:nth-child(2) { text-align: left; font-weight: 500; }
+    .matrix-table tr:hover { background-color: #fbfdfb; }
+
+    .thermal-summary-card { background: var(--green-light); border: 1px solid var(--green-mid); border-radius: var(--radius-sm); padding: 8px 12px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; }
+
+    .pathology-checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; margin-top: 4px; }
+    .pathology-checkbox-label { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); padding: 6px 8px; border-radius: var(--radius-sm); font-size: 11px; cursor: pointer; color: var(--text); }
+    .pathology-checkbox-label:hover { border-color: var(--green); }
+    .pathology-checkbox-label input:checked + span { font-weight: 700; color: var(--emerald-deep); }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(26, 46, 27, 0.65); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+    .modal-overlay.active { display: flex; }
+    .modal-container { background: var(--white); color: var(--text); width: 95%; max-width: 1000px; max-height: 90vh; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; }
+    .modal-header { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--emerald); color: #fff; }
+    .modal-header h3 { font-size: 14.5px; font-weight: 600; color: #fff; }
+    .modal-close-btn { background: none; border: none; font-size: 19px; color: #fff; cursor: pointer; }
+    .modal-body { padding: 14px 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+
+    .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; }
+    .catalog-item-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px; display: flex; flex-direction: column; justify-content: space-between; }
+  </style>
+</head>
+<body>
+
+  <div class="platform-container">
+    <div class="header-bar">
+      <div class="header-brand">
+        <span style="font-size: 20px;">🐾</span>
+        <div>
+          <h1>Vet Vasylkova</h1>
+          <p>Клінічна нутриціологія та раціонотерапія пацієнтів (NRC / FEDIAF)</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button class="btn-secondary" style="font-size:11px;" onclick="openSupabaseSettingsModal()">⚙️ Supabase</button>
+        <span id="active-patient-header" class="badge success" style="font-size:11px;">Пацієнт: Торін (25.0 кг)</span>
+        <a href="../../VetOS-calculator.html" class="btn-exit">Головне меню / Вихід</a>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="tab-btn" id="tab-btn-0" onclick="switchDoctorTab(0)">📋 0. Медична карта та анкета пацієнта (ЗК)</button>
+      <button class="tab-btn active" id="tab-btn-1" onclick="switchDoctorTab(1)">🥗 1. Клінічний нутриціовний конструктор</button>
+    </div>
+
+    <!-- ВКЛАДКА 0: МЕДИЧНА КАРТА ТА РЕЄСТР -->
+    <div class="module-pane" id="pane-0">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+          <div>
+            <h2>Амбулаторний журнал пацієнтів</h2>
+            <p class="subtitle" style="margin-bottom:0;">Пошук за кличкою, прізвищем власника, телефоном, email або породою</p>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="patient-search-input" class="form-input" style="width:320px;" placeholder="🔍 Пошук (кличка, власник, телефон, email, порода)..." oninput="filterPatientsList()">
+            <button class="btn-primary" onclick="openNewPatientModal()">➕ Новий пацієнт</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="matrix-table">
+            <thead>
+              <tr><th>Кличка</th><th>Вид / Порода</th><th>Вага</th><th>Патології</th><th>Власник / Контакти</th><th>Дія</th></tr>
+            </thead>
+            <tbody id="doctor-patients-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="patient-chart-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid var(--border-light); padding-bottom:8px; margin-bottom:10px;">
+          <div>
+            <h2>Медична карта пацієнта: <span id="chart-patient-title" style="color:var(--emerald-deep);">Торін</span></h2>
+            <p class="subtitle" style="margin-bottom:0;">Паспортні дані, патології, контакти, історія попередніх кормів та клінічний лог призначених раціонів</p>
+          </div>
+          <button class="btn-primary" style="background:var(--green); font-size:12px;" onclick="savePatientAndProceedToBuilder()">💾 Зберегти карту та перейти до конструктора ➔</button>
+        </div>
+        
+        <h3>1. Паспортні дані тварини</h3>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+          <div><label class="diet-label">Кличка тварини</label><input type="text" id="doc-p-name" class="form-input" value="Торін"></div>
+          <div><label class="diet-label">Вид</label>
+            <select id="doc-p-species" class="form-select" onchange="onSpeciesSelectChange(this.value)">
+              <option value="dog">🐶 Собака</option>
+              <option value="cat">🐱 Кіт</option>
+            </select>
+          </div>
+          <div><label class="diet-label">Порода (вільне введення)</label><input type="text" id="doc-p-breed" class="form-input" value="Німецька вівчарка" placeholder="Вкажіть породу або метис"></div>
+          <div><label class="diet-label">Поточна вага (кг)</label><input type="number" id="doc-p-weight" step="0.1" class="form-input" value="25.0"></div>
+        </div>
+        
+        <h3>2. Контактні дані власника</h3>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+          <div><label class="diet-label">ПІБ / Прізвище власника</label><input type="text" id="doc-p-owner" class="form-input" value="Іванов Іван Іванович" placeholder="Прізвище Ім'я"></div>
+          <div><label class="diet-label">Телефон для зв'язку</label><input type="text" id="doc-p-phone" class="form-input" value="+380501234567" placeholder="+380..."></div>
+          <div><label class="diet-label">Email пошта</label><input type="email" id="doc-p-email" class="form-input" value="ivanov@gmail.com" placeholder="client@example.com"></div>
+          <div><label class="diet-label">ID / Нік у месенджері</label><input type="text" id="doc-p-messenger" class="form-input" value="@ivanov_vet" placeholder="@telegram_nick або Viber"></div>
+        </div>
+
+        <h3>3. Мультиселект патологій пацієнта</h3>
+        <div class="pathology-checkbox-grid" id="pathology-checkbox-container">
+          <label class="pathology-checkbox-label"><input type="checkbox" name="pathology_cb" value="ckd" onchange="onPathologySelectionChanged()"><span>ХХН (Нирки — фосфор)</span></label>
+          <label class="pathology-checkbox-label"><input type="checkbox" name="pathology_cb" value="pancreatitis" onchange="onPathologySelectionChanged()"><span>Панкреатит (Жир &lt;10-12%)</span></label>
+          <label class="pathology-checkbox-label"><input type="checkbox" name="pathology_cb" value="diabetes" onchange="onPathologySelectionChanged()"><span>Цукровий діабет</span></label>
+          <label class="pathology-checkbox-label"><input type="checkbox" name="pathology_cb" value="obesity" onchange="onPathologySelectionChanged()"><span>Ожиріння (BCS &gt;6/9)</span></label>
+          <label class="pathology-checkbox-label"><input type="checkbox" name="pathology_cb" value="underweight" onchange="onPathologySelectionChanged()"><span>Дефіцит ваги / Кахексія</span></label>
+          <label class="pathology-checkbox-label"><input type="checkbox" name="pathology_cb" value="urolithiasis_struvite" onchange="onPathologySelectionChanged()"><span>Струвіти (pH 6.0-6.4)</span></label>
+          <label class="pathology-checkbox-label"><input type="checkbox" name="pathology_cb" value="urolithiasis_caox" onchange="onPathologySelectionChanged()"><span>Оксалати Ca (pH 6.8-7.2)</span></label>
+          <label class="pathology-checkbox-label"><input type="checkbox" name="pathology_cb" value="hepatitis" onchange="onPathologySelectionChanged()"><span>Гепатопатія (Контроль Cu)</span></label>
+          <label class="pathology-checkbox-label"><input type="checkbox" name="pathology_cb" value="gi" onchange="onPathologySelectionChanged()"><span>Гастроентеропатія / IBD</span></label>
+        </div>
+
+        <h3>4. Анкета харчових преференцій та алергопанель</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label class="diet-label">Улюблені смаки та консистенція</label>
+            <textarea id="doc-p-preferences" rows="2" class="form-input" placeholder="Любить шматочки птиці та печінку..."></textarea>
+          </div>
+          <div>
+            <label class="diet-label">Алергії, гіперчутливість та харчова непереносимість</label>
+            <textarea id="doc-p-allergies" rows="2" class="form-input" placeholder="Свербіж на курку, реакція на кукурудзу..."></textarea>
+          </div>
+        </div>
+
+        <h3>5. Хронологічний журнал дієтотерапії</h3>
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:700; color:var(--emerald);">+ Додати попередній раціон (анамнез до візиту):</span>
+          <div style="display:grid; grid-template-columns: 1.2fr 1fr 1.3fr 1.2fr 80px; gap:6px; margin-top:4px;">
+            <div><label class="diet-label">Корм / Меню</label><input type="text" id="hist-food-input" class="form-input" placeholder="Напр. Royal Canin Medium"></div>
+            <div><label class="diet-label">Період</label><input type="text" id="hist-date-input" class="form-input" placeholder="Січ 2026 - Трав 2026"></div>
+            <div><label class="diet-label">Причина зміни</label><input type="text" id="hist-reason-input" class="form-input" placeholder="Відмова від їжі"></div>
+            <div><label class="diet-label">Симптоми / Реакція</label><input type="text" id="hist-reaction-input" class="form-input" placeholder="Рідкий стілець"></div>
+            <div style="display:flex; align-items:flex-end;"><button class="btn-primary" style="width:100%; padding:6px 0;" onclick="addDietHistoryItem()">+ Запис</button></div>
+          </div>
+        </div>
+
+        <div class="table-container" style="margin-bottom:12px;">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th style="width:90px;">Дата</th>
+                <th style="text-align:left;">Раціон / Рецептура</th>
+                <th style="text-align:left;">Причина переходу</th>
+                <th style="text-align:left;">Клінічна відповідь</th>
+                <th style="width:140px;">Дії лікаря</th>
+              </tr>
+            </thead>
+            <tbody id="diet-history-tbody"></tbody>
+          </table>
+        </div>
+
+        <h3>6. Клінічні вкладення (Аналізи, PDF, УЗД, виписки)</h3>
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11.5px; font-weight:600; color:var(--emerald);">Прикріплені файли:</span>
+            <label class="btn-secondary" style="cursor:pointer;">
+              📎 Завантажити PDF / Фото аналізу
+              <input type="file" id="patient-file-upload" accept="image/*,.pdf" style="display:none;" onchange="handlePatientFileUpload(this)">
+            </label>
+          </div>
+          <div id="patient-docs-list" style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;"></div>
+        </div>
+
+        <h3>7. Рекомендовані контрольні аналізи</h3>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+          <div><label class="diet-label">Повторний візит через</label><input type="text" id="doc-p-revisit" class="form-input" value="14 днів"></div>
+          <div><label class="diet-label">Контроль ваги</label><input type="text" id="doc-p-weight-control" class="form-input" value="Щотижня вранці натще"></div>
+          <div><label class="diet-label">Замір у холці (ріст)</label><input type="text" id="doc-p-height-control" class="form-input" value="Кожні 14 днів"></div>
+          <div><label class="diet-label">Авто-план аналізів</label><input type="text" id="doc-p-lab-tests" class="form-input" value="ЗАК, Б/Х (ниркова + печінкова панелі)"></div>
+        </div>
+
+        <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center; border-top:1px solid var(--border); padding-top:12px;">
+          <label style="font-size: 11.5px; font-weight: 600; color: var(--emerald); cursor: pointer;">
+            <input type="checkbox" id="include-client-card-in-report-cb" checked> ☑️ Включити анкету та аналізи у звіт власнику
+          </label>
+          <button class="btn-primary" style="background:var(--green); padding:9px 18px; font-size:12.5px;" onclick="savePatientAndProceedToBuilder()">💾 Зберегти карту та перейти до конструктора ➔</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ВКЛАДКА 1: КЛІНІЧНИЙ КОНСТРУКТОР -->
+    <div class="module-pane active" id="pane-1">
+      <div class="diet-constructor-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h2>🥗 Клінічний нутриціовний конструктор (FEDIAF / NRC)</h2>
+          <div id="diet-total-weight-badge" class="badge success" style="font-size: 12px;">Загальна наважка: 0 г</div>
+        </div>
+
+        <div class="diet-top-grid">
+          <div class="diet-panel">
+            <span class="diet-label">Вид тварини</span>
+            <select id="builder-species" class="diet-select" onchange="onSpeciesSelectChange(this.value); runDoctorRecalc();">
+              <option value="dog">🐶 Собака</option>
+              <option value="cat">🐱 Кіт</option>
+            </select>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <div>
+                <span class="diet-label">Поточна (кг)</span>
+                <input type="number" id="builder-weight" class="diet-input" value="25.0" step="0.1" onfocus="this.select()" onchange="runDoctorRecalc()">
+              </div>
+              <div>
+                <span class="diet-label">Ідеальна (кг)</span>
+                <input type="number" id="builder-ideal-weight" class="diet-input" value="25.0" step="0.1" onfocus="this.select()" onchange="runDoctorRecalc()">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <div>
+                <span class="diet-label">Прийоми їжі</span>
+                <select id="builder-meals" class="diet-select" onchange="runDoctorRecalc()">
+                  <option value="2" selected>2 прийоми</option>
+                  <option value="3">3 прийоми</option>
+                  <option value="4">4-5 прийомів</option>
+                  <option value="1">1 прийом</option>
+                </select>
+              </div>
+              <div>
+                <span class="diet-label">% ОЕ (Ккал)</span>
+                <input type="number" id="builder-oe" class="diet-input" value="100" min="50" max="200" onfocus="this.select()" onchange="runDoctorRecalc()">
+              </div>
+            </div>
+          </div>
+
+          <div class="diet-panel">
+            <span class="diet-label">Етап життя</span>
+            <select id="builder-lifestage" class="diet-select" onchange="updateDefaultFactor(); runDoctorRecalc();">
+              <option value="adult_neutered">Дорослий (стерил)</option>
+              <option value="adult_intact">Дорослий (інтакт)</option>
+              <option value="puppy_kitten_early">Ріст: &lt; 50%</option>
+              <option value="puppy_kitten_late">Ріст: &gt; 50%</option>
+              <option value="senior">Сеніор</option>
+            </select>
+
+            <div style="display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 4px;">
+              <div>
+                <span class="diet-label">Порода</span>
+                <input type="text" id="builder-breed" class="diet-input" value="Німецька вівчарка" placeholder="Вкажіть породу" onchange="currentPatient.breed=this.value;">
+              </div>
+              <div>
+                <span class="diet-label">BCS</span>
+                <select id="builder-bcs" class="diet-select" onchange="runDoctorRecalc()">
+                  <option value="3">3/9</option>
+                  <option value="5" selected>5/9</option>
+                  <option value="7">7/9</option>
+                  <option value="8">8/9</option>
+                </select>
+              </div>
+            </div>
+
+            <span class="diet-label">Патологічний профіль</span>
+            <div id="builder-active-pathologies-badge" style="font-size:11px; font-weight:700; color:var(--emerald); padding-top:4px;">Без патологій</div>
+          </div>
+
+          <div class="diet-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <span class="diet-label" style="margin:0;">Енергетичний баланс</span>
+              <span id="builder-energy-balance-badge" class="badge success" style="padding: 1px 6px; font-size: 9.5px;">100% Норма</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <div>
+                <span class="diet-label">Ціль MER</span>
+                <input type="text" id="builder-mer-display" class="diet-input" style="color: var(--emerald); font-weight: 700; background: #fff;" value="0 ккал" readonly>
+              </div>
+              <div>
+                <span class="diet-label">Факт у рецепті</span>
+                <input type="text" id="builder-actual-kcal-display" class="diet-input" style="font-weight: 700; color: #0284c7; background: #fff;" value="0 ккал" readonly>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <div>
+                <span class="diet-label">RER (Клайбер)</span>
+                <input type="text" id="builder-rer-display" class="diet-input" value="0 ккал" readonly>
+              </div>
+              <div>
+                <span class="diet-label">Множник (×)</span>
+                <input type="number" id="builder-factor-input" step="0.05" min="0.8" max="4.0" class="diet-input" style="font-weight:700; color:var(--emerald); background:#fff;" value="1.6" oninput="runDoctorRecalc()">
+              </div>
+            </div>
+          </div>
+
+          <div class="diet-panel" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="display: flex; gap: 5px; font-size: 9px; margin-bottom: 2px; font-weight: 600;">
+              <span style="color:#f472b6;">● Біл</span>
+              <span style="color:#fde047;">● Жир</span>
+              <span style="color:#5eead4;">● NFE</span>
+            </div>
+            <div style="position: relative; height: 95px; width: 95px;">
+              <canvas id="macroChart"></canvas>
+            </div>
+          </div>
+
+          <div class="action-btn-stack">
+            <button class="diet-subtab-btn" style="background: var(--emerald); color: #fff;" onclick="saveActiveDietToHistory()">💾 Зберегти в ЗК</button>
+            <button class="diet-subtab-btn" style="border:1px solid #38bdf8; color:#0284c7; background:#f0f9ff; font-weight:700;" onclick="openQuickCalcModal()">⚡ Quick Calc</button>
+            <button class="diet-subtab-btn" style="background: var(--green); color: #fff;" onclick="openReportModal()">📄 Звіт</button>
+            <button class="diet-subtab-btn" onclick="directPrintReport()">🖨️ Друк</button>
+          </div>
+        </div>
+
+        <div class="clinical-indicator-bar">
+          <div class="indicator-box"><div class="indicator-box-title">Ca : P</div><div class="indicator-box-val" id="ind-ca-p">1.20 : 1</div><div class="indicator-box-sub" id="ind-ca-p-status" style="color: var(--emerald);">Оптимум ✓</div></div>
+          <div class="indicator-box"><div class="indicator-box-title">Zn : Ca &amp; Zn : Cu</div><div class="indicator-box-val" id="ind-zn-ca">0.022</div><div class="indicator-box-sub" id="ind-zn-cu">Zn:Cu = 10.0 : 1</div></div>
+          <div class="indicator-box"><div class="indicator-box-title">PRAL</div><div class="indicator-box-val" id="ind-pral">0 мЕкв</div><div class="indicator-box-sub" id="ind-pral-status">Нейтральне</div></div>
+          <div class="indicator-box"><div class="indicator-box-title">Прогноз pH сечі</div><div class="indicator-box-val" id="ind-ph">~6.50</div><div class="indicator-box-sub" id="ind-ph-status" style="color: var(--emerald);">Норма (6.0–7.0) ✓</div></div>
+          <div class="indicator-box"><div class="indicator-box-title">ω6 : ω3</div><div class="indicator-box-val" id="ind-omega">4.5 : 1</div><div class="indicator-box-sub" id="ind-omega-status" style="color: var(--emerald);">Оптимум (~5:1)</div></div>
+          <div class="indicator-box"><div class="indicator-box-title">Норма води</div><div class="indicator-box-val" id="ind-water">1375 мл</div><div class="indicator-box-sub" id="ind-water-sub">З корму: 0 мл</div></div>
+        </div>
+
+        <div class="thermal-summary-card">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">🍲</span>
+            <div>
+              <span style="font-weight: 600; color: var(--emerald-deep);">Термічна обробка:</span>
+              <select id="thermal-method-select" class="form-select" style="display: inline-block; width: auto; padding: 2px 6px; font-size: 11px; margin-left: 4px;" onchange="runDoctorRecalc()">
+                <option value="raw">Сирий раціон (RAW / BARF)</option>
+                <option value="boil" selected>Варіння (М'ясо -25%, B1 -40%, Tau -30%)</option>
+                <option value="bake">Запікання (М'ясо -30%, B1 -35%, Vit A -20%)</option>
+              </select>
+            </div>
+          </div>
+          <div id="thermal-summary-text" style="font-weight: 500; color: var(--emerald-deep);">Сира маса: <strong>0 г</strong> ➔ Готова порція: <strong>0 г</strong></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+          <div style="display: flex; gap: 6px;">
+            <button class="diet-subtab-btn" style="background: var(--green); color: #fff; font-weight: 600;" onclick="openIngredientCatalog()">+ Додати інгредієнт / Корм (Каталог)</button>
+            <button class="diet-subtab-btn" style="background: #fee2e2; color: var(--red); border-color: var(--red);" onclick="removeSelectedIngredients()">- Видалити обрані</button>
+          </div>
+
+          <div class="diet-subtabs">
+            <button class="diet-subtab-btn active" onclick="switchMatrixView('macro', this)">⚡ Макро (БЖУ / DM)</button>
+            <button class="diet-subtab-btn" onclick="switchMatrixView('minerals', this)">🦴 Мінерали &amp; Біодоступність</button>
+            <button class="diet-subtab-btn" onclick="switchMatrixView('vitamins', this)">💊 Всі вітаміни</button>
+            <button class="diet-subtab-btn" onclick="switchMatrixView('amino', this)">🧬 Амінокислоти</button>
+            <button class="diet-subtab-btn" onclick="switchMatrixView('fatty', this)">🥑 Жирні кислоти</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="matrix-table" id="diet-matrix-table">
+            <thead id="matrix-thead"></thead>
+            <tbody id="matrix-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛЬНІ ВІКНА -->
+  <div class="modal-overlay" id="supabase-settings-modal">
+    <div class="modal-container" style="max-width: 550px;">
+      <div class="modal-header"><h3>⚙️ Налаштування хмарної бази Supabase</h3><button class="modal-close-btn" onclick="closeSupabaseSettingsModal()">&times;</button></div>
+      <div class="modal-body">
+        <p style="font-size: 11.5px; color: var(--text-muted);">Введіть URL проекту та API Key для синхронізації пацієнтів та раціонів:</p>
+        <div><label class="diet-label">Project URL</label><input type="text" id="sb-url-input" class="form-input" placeholder="https://xyzcompany.supabase.co"></div>
+        <div style="margin-top:8px;"><label class="diet-label">API Key</label><input type="password" id="sb-key-input" class="form-input"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;">
+          <span id="sb-connection-status" style="font-size:11px; font-weight:700;">Статус: Автономний режим (Local)</span>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-secondary" onclick="closeSupabaseSettingsModal()">Закрити</button>
+            <button class="btn-primary" onclick="saveSupabaseSettings()">✓ Зберегти та з'єднати</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="new-patient-modal">
+    <div class="modal-container" style="max-width: 650px;">
+      <div class="modal-header"><h3>➕ Швидке анкетування: Новий пацієнт</h3><button class="modal-close-btn" onclick="closeNewPatientModal()">&times;</button></div>
+      <div class="modal-body">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div><label class="diet-label">Кличка *</label><input type="text" id="np-name" class="form-input" placeholder="Арчі"></div>
+          <div><label class="diet-label">Вид</label><select id="np-species" class="form-select"><option value="dog">🐶 Собака</option><option value="cat">🐱 Кіт</option></select></div>
+          <div><label class="diet-label">Порода</label><input type="text" id="np-breed" class="form-input" placeholder="Французький бульдог"></div>
+          <div><label class="diet-label">Вага (кг) *</label><input type="number" id="np-weight" step="0.1" class="form-input" value="10.0"></div>
+        </div>
+        <div style="margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px;">
+          <span style="font-size: 11.5px; font-weight: 700; color: var(--emerald);">Контакти власника:</span>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px;">
+            <div><label class="diet-label">ПІБ</label><input type="text" id="np-owner" class="form-input" placeholder="Коваленко Олена"></div>
+            <div><label class="diet-label">Телефон *</label><input type="text" id="np-phone" class="form-input" placeholder="+380..."></div>
+            <div><label class="diet-label">Email</label><input type="email" id="np-email" class="form-input" placeholder="client@gmail.com"></div>
+            <div><label class="diet-label">Месенджер</label><input type="text" id="np-messenger" class="form-input" placeholder="@nick"></div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap: 8px; margin-top: 12px;">
+          <button class="btn-secondary" onclick="closeNewPatientModal()">Скасувати</button>
+          <button class="btn-primary" onclick="confirmCreateNewPatient()">✓ Зберегти та відкрити карту</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="catalog-modal">
+    <div class="modal-container">
+      <div class="modal-header"><h3>📚 Каталог раціонів та інгредієнтів (Хмара + Скринінг)</h3><button class="modal-close-btn" onclick="closeIngredientCatalog()">&times;</button></div>
+      <div class="modal-body">
+        <input type="text" id="catalog-search" class="form-input" placeholder="🔍 Пошук..." oninput="renderCatalogCards()">
+        <div class="catalog-grid" id="catalog-items-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../VetOS-ingredients.js"></script>
+  <script src="../../VetOS-engine.js"></script>
+
+  <script>
+    const STORAGE_KEY_DOCTOR = 'vetos_doctor_patients';
+    const DB_NAME = 'VetOS_Doctor_Files_DB';
+    const STORE_FILES = 'patient_clinical_docs';
+    let dbFiles = null;
+
+    let supabaseClient = null;
+    let cloudFeeds = [];
+    let cloudIngredients = [];
+
+    function initSupabaseFromStorage() {
+      const url = localStorage.getItem('vetos_supabase_url');
+      const key = localStorage.getItem('vetos_supabase_key');
+      if (url && key && window.supabase) {
+        supabaseClient = window.supabase.createClient(url, key);
+        loadCloudCatalog();
+      }
+    }
+
+    async function loadCloudCatalog() {
+      if (!supabaseClient) return;
+      try {
+        const { data: fData } = await supabaseClient.from('feeds').select('*').limit(200);
+        if (fData && fData.length > 0) cloudFeeds = fData;
+        const { data: iData } = await supabaseClient.from('ingredients').select('*').limit(200);
+        if (iData && iData.length > 0) cloudIngredients = iData;
+      } catch (err) {
+        console.warn('Cloud fetch:', err);
+      }
+    }
+
+    function openSupabaseSettingsModal() {
+      document.getElementById('sb-url-input').value = localStorage.getItem('vetos_supabase_url') || '';
+      document.getElementById('sb-key-input').value = localStorage.getItem('vetos_supabase_key') || '';
+      const st = document.getElementById('sb-connection-status');
+      if (supabaseClient) {
+        st.innerText = 'Статус: Підключено до Supabase ✓';
+        st.style.color = 'var(--emerald)';
+      } else {
+        st.innerText = 'Статус: Автономний режим (Local)';
+        st.style.color = 'var(--text-muted)';
+      }
+      document.getElementById('supabase-settings-modal').classList.add('active');
+    }
+
+    function closeSupabaseSettingsModal() { document.getElementById('supabase-settings-modal').classList.remove('active'); }
+
+    async function saveSupabaseSettings() {
+      const url = document.getElementById('sb-url-input').value.trim();
+      const key = document.getElementById('sb-key-input').value.trim();
+      localStorage.setItem('vetos_supabase_url', url);
+      localStorage.setItem('vetos_supabase_key', key);
+      if (url && key && window.supabase) {
+        supabaseClient = window.supabase.createClient(url, key);
+        await loadCloudCatalog();
+        alert('✓ Зв\'язок із хмарою Supabase успішно встановлено!');
+      } else {
+        supabaseClient = null;
+        alert('Працюємо в локальному режимі.');
+      }
+      closeSupabaseSettingsModal();
+    }
+
+    let macroChartInstance = null;
+    let currentMatrixView = 'macro';
+
+    let currentPatient = {
+      id: 1, name: 'Торін', species: 'dog', breed: 'Німецька вівчарка', weight: 25.0, idealWeight: 25.0,
+      owner: 'Іванов Іван Іванович', phone: '+380501234567', email: 'ivanov@gmail.com', messenger: '@ivanov_vet',
+      pathologies: ['none'],
+      preferences: 'Любить яловичину та індичку.',
+      allergies: 'Курка промислова, курячий жир, кукурудза', revisit: '14 днів', weightControl: 'Щотижня',
+      heightControl: 'Кожні 14 днів', labTests: 'Б/Х ниркова та печінкова панелі, ЗАК',
+      dietHistory: [
+        { type: 'history', date: 'Січ 2026 - Трав 2026', food: 'Royal Canin Maxi Adult', reason: 'Свербіж шкіри', reaction: 'Розчухи в паху' }
+      ]
+    };
+
+    let doctorDietRows = [
+      { id: 'beef_thigh', grams: 350, price100g: 22.0, included: true },
+      { id: 'beef_liver', grams: 35, price100g: 12.0, included: true },
+      { id: 'turkey_breast', grams: 250, price100g: 24.0, included: true },
+      { id: 'carrot', grams: 80, price100g: 2.5, included: true },
+      { id: 'rice_boiled', grams: 200, price100g: 4.0, included: true },
+      { id: 'salmon_oil', grams: 8, price100g: 60.0, included: true },
+      { id: 'supp_calcium_carbonate', grams: 4, price100g: 15.0, included: true }
+    ];
+
+    function getAllIngredients() {
+      if (cloudIngredients.length > 0) {
+        return cloudIngredients.map(ci => ({
+          id: ci.id, name: ci.name_ukr, category: ci.category,
+          cp: Number(ci.cp) || 0, fat: Number(ci.fat) || 0, moisture: Number(ci.moisture) || 70,
+          me_fediaf: Number(ci.me_fediaf) || 120, ca: Number(ci.ca) || 0, p: Number(ci.p) || 0,
+          mg: Number(ci.mg) || 0, k: Number(ci.k) || 0, na: Number(ci.na) || 0,
+          fe: Number(ci.fe) || 0, cu: Number(ci.cu) || 0, zn: Number(ci.zn) || 0
+        }));
+      }
+      if (window.VetOS_DB && window.VetOS_DB.ingredients) return window.VetOS_DB.ingredients;
+      if (window.masterIngredients) return window.masterIngredients;
+      return [];
+    }
+
+    async function saveActiveDietToHistory() {
+      const today = new Date().toLocaleDateString('uk-UA');
+      const allIngs = getAllIngredients();
+      const summaryItems = doctorDietRows.filter(r => r.included && r.grams > 0).map(r => {
+        const item = allIngs.find(d => d.id === r.id);
+        return `${item ? item.name : r.id} (${r.grams} г)`;
+      }).join(', ');
+
+      const totalWeightBadge = document.getElementById('diet-total-weight-badge').innerText;
+      const actualKcal = document.getElementById('builder-actual-kcal-display').value;
+
+      if (!currentPatient.dietHistory) currentPatient.dietHistory = [];
+
+      const newEntry = {
+        type: 'clinical_ration', date: today,
+        food: `Клінічний раціон VetOS [${totalWeightBadge}, ${actualKcal}]: ${summaryItems}`,
+        reason: 'Призначення дієтотерапії (NRC/FEDIAF)', reaction: 'На стадії моніторингу',
+        recipeRows: JSON.parse(JSON.stringify(doctorDietRows))
+      };
+
+      currentPatient.dietHistory.unshift(newEntry);
+      saveCurrentPatientState();
+
+      if (supabaseClient) {
+        try {
+          await supabaseClient.from('rations').insert([{
+            patient_id: currentPatient.id, recipe: doctorDietRows, created_at: new Date().toISOString()
+          }]);
+        } catch (e) { console.warn('Supabase save notice:', e); }
+      }
+
+      renderDietHistoryTable();
+      alert(`✓ Раціон успішно зафіксовано в ЗК та додано в історію від ${today}!`);
+    }
+
+    function loadSavedRationForCorrection(idx) {
+      const entry = currentPatient.dietHistory[idx];
+      if (!entry || !entry.recipeRows) { alert('Цей запис не містить рецептури.'); return; }
+      if (confirm(`Завантажити рецепт від ${entry.date} в конструктор для корекції?`)) {
+        doctorDietRows = JSON.parse(JSON.stringify(entry.recipeRows));
+        switchDoctorTab(1);
+        runDoctorRecalc();
+      }
+    }
+
+    function renderDietHistoryTable() {
+      const tbody = document.getElementById('diet-history-tbody');
+      if (!tbody) return;
+      const list = currentPatient.dietHistory || [];
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:10px;">Історія не внесена.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, idx) => {
+        const isClinical = item.type === 'clinical_ration';
+        const sourceBadge = isClinical ? '<span class="badge success" style="font-size:9.5px;">🏥 Призначено</span>' : '<span class="badge info" style="font-size:9.5px;">До візиту</span>';
+        const actionBtn = isClinical ? `
+          <button class="btn-secondary" style="font-size:10px; padding:2px 6px; width:100%; margin-bottom:2px;" onclick="loadSavedRationForCorrection(${idx})">🔄 Скоригувати</button>
+          <button onclick="removeDietHistoryItem(${idx})" style="border:none; background:transparent; color:var(--red); cursor:pointer; font-size:10px;">Видалити</button>
+        ` : `<button onclick="removeDietHistoryItem(${idx})" style="border:none; background:transparent; color:var(--red); cursor:pointer; font-weight:700;">✕</button>`;
+
+        return `
+          <tr style="${isClinical ? 'background:#f0fdf4;' : ''}">
+            <td style="font-size:10.5px;"><strong>${item.date || '—'}</strong><br>${sourceBadge}</td>
+            <td style="text-align:left; font-size:11px;"><strong>${item.food}</strong></td>
+            <td style="text-align:left;"><input type="text" class="form-input" style="font-size:10.5px; padding:2px 4px;" value="${item.reason || ''}" onchange="currentPatient.dietHistory[${idx}].reason=this.value; saveCurrentPatientState();"></td>
+            <td style="text-align:left;"><input type="text" class="form-input" style="font-size:10.5px; padding:2px 4px; color:${isClinical ? 'var(--emerald-deep)' : 'var(--red)'}; font-weight:600;" value="${item.reaction || ''}" onchange="currentPatient.dietHistory[${idx}].reaction=this.value; saveCurrentPatientState();"></td>
+            <td>${actionBtn}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function addDietHistoryItem() {
+      const food = document.getElementById('hist-food-input').value.trim();
+      const date = document.getElementById('hist-date-input').value.trim() || new Date().toLocaleDateString('uk-UA');
+      const reason = document.getElementById('hist-reason-input').value.trim();
+      const reaction = document.getElementById('hist-reaction-input').value.trim();
+
+      if (!food) { alert('Вкажіть назву корму'); return; }
+
+      if (!currentPatient.dietHistory) currentPatient.dietHistory = [];
+      currentPatient.dietHistory.push({ type: 'history', date, food, reason: reason || 'Не вказано', reaction: reaction || 'Без ускладнень' });
+
+      document.getElementById('hist-food-input').value = '';
+      document.getElementById('hist-date-input').value = '';
+      document.getElementById('hist-reason-input').value = '';
+      document.getElementById('hist-reaction-input').value = '';
+
+      saveCurrentPatientState();
+      renderDietHistoryTable();
+    }
+
+    function removeDietHistoryItem(idx) {
+      if (!confirm('Видалити запис?')) return;
+      currentPatient.dietHistory.splice(idx, 1);
+      saveCurrentPatientState();
+      renderDietHistoryTable();
+    }
+
+    function saveCurrentPatientState() {
+      const patients = JSON.parse(localStorage.getItem(STORAGE_KEY_DOCTOR) || '[]');
+      const existIdx = patients.findIndex(p => p.id === currentPatient.id);
+      if (existIdx !== -1) patients[existIdx] = currentPatient;
+      localStorage.setItem(STORAGE_KEY_DOCTOR, JSON.stringify(patients));
+    }
+
+    function openNewPatientModal() {
+      document.getElementById('np-name').value = '';
+      document.getElementById('np-breed').value = '';
+      document.getElementById('np-weight').value = '10.0';
+      document.getElementById('np-owner').value = '';
+      document.getElementById('np-phone').value = '';
+      document.getElementById('np-email').value = '';
+      document.getElementById('np-messenger').value = '';
+      document.getElementById('new-patient-modal').classList.add('active');
+    }
+
+    function closeNewPatientModal() { document.getElementById('new-patient-modal').classList.remove('active'); }
+
+    async function confirmCreateNewPatient() {
+      const name = document.getElementById('np-name').value.trim();
+      if (!name) { alert('Введіть кличку'); return; }
+
+      const newId = Date.now();
+      const p = {
+        id: newId, name,
+        species: document.getElementById('np-species').value,
+        breed: document.getElementById('np-breed').value.trim() || 'Без породи',
+        weight: parseFloat(document.getElementById('np-weight').value) || 10.0,
+        idealWeight: parseFloat(document.getElementById('np-weight').value) || 10.0,
+        owner: document.getElementById('np-owner').value.trim() || 'Власник',
+        phone: document.getElementById('np-phone').value.trim() || '-',
+        email: document.getElementById('np-email').value.trim() || '',
+        messenger: document.getElementById('np-messenger').value.trim() || '',
+        pathologies: ['none'], preferences: '', allergies: '', revisit: '14 днів',
+        weightControl: 'Щотижня', heightControl: 'Кожні 14 днів', labTests: 'ЗАК, Б/Х', dietHistory: []
+      };
+
+      const patients = JSON.parse(localStorage.getItem(STORAGE_KEY_DOCTOR) || '[]');
+      patients.unshift(p);
+      localStorage.setItem(STORAGE_KEY_DOCTOR, JSON.stringify(patients));
+
+      if (supabaseClient) {
+        try { await supabaseClient.from('patients').insert([p]); } catch (err) { console.warn('Supabase sync:', err); }
+      }
+
+      closeNewPatientModal();
+      loadPatientToForm(p);
+      switchDoctorTab(0);
+      const card = document.getElementById('patient-chart-card');
+      if (card) card.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function savePatientAndProceedToBuilder() {
+      const nameEl = document.getElementById('doc-p-name');
+      const name = nameEl ? nameEl.value.trim() : '';
+      if (!name) { alert('Вкажіть кличку'); return; }
+
+      const selectedCbs = Array.from(document.querySelectorAll('input[name="pathology_cb"]:checked')).map(cb => cb.value);
+
+      currentPatient.name = name;
+      currentPatient.species = document.getElementById('doc-p-species').value;
+      currentPatient.breed = document.getElementById('doc-p-breed').value.trim() || 'Без породи';
+      currentPatient.weight = parseFloat(document.getElementById('doc-p-weight').value) || 20;
+      currentPatient.owner = document.getElementById('doc-p-owner').value.trim();
+      currentPatient.phone = document.getElementById('doc-p-phone').value.trim();
+      currentPatient.email = document.getElementById('doc-p-email').value.trim();
+      currentPatient.messenger = document.getElementById('doc-p-messenger').value.trim();
+      currentPatient.pathologies = selectedCbs.length > 0 ? selectedCbs : ['none'];
+      currentPatient.preferences = document.getElementById('doc-p-preferences').value.trim();
+      currentPatient.allergies = document.getElementById('doc-p-allergies').value.trim();
+      currentPatient.revisit = document.getElementById('doc-p-revisit').value.trim();
+      currentPatient.weightControl = document.getElementById('doc-p-weight-control').value.trim();
+      currentPatient.heightControl = document.getElementById('doc-p-height-control').value.trim();
+      currentPatient.labTests = document.getElementById('doc-p-lab-tests').value.trim();
+
+      saveCurrentPatientState();
+
+      if (supabaseClient) {
+        try { await supabaseClient.from('patients').upsert([currentPatient]); } catch (err) { console.warn('Supabase sync:', err); }
+      }
+
+      loadPatientToForm(currentPatient);
+      switchDoctorTab(1);
+    }
+
+    function setElemValue(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val !== undefined ? val : '';
+    }
+
+    function setElemText(id, txt) {
+      const el = document.getElementById(id);
+      if (el) el.innerText = txt !== undefined ? txt : '';
+    }
+
+    function loadPatientToForm(p) {
+      if (!p) return;
+      currentPatient = p;
+      setElemText('chart-patient-title', p.name);
+      setElemValue('doc-p-name', p.name);
+      setElemValue('doc-p-species', p.species);
+      setElemValue('doc-p-breed', p.breed || '');
+      setElemValue('doc-p-weight', p.weight);
+      setElemValue('doc-p-owner', p.owner);
+      setElemValue('doc-p-phone', p.phone);
+      setElemValue('doc-p-email', p.email || '');
+      setElemValue('doc-p-messenger', p.messenger || '');
+
+      setElemValue('doc-p-preferences', p.preferences || '');
+      setElemValue('doc-p-allergies', p.allergies || '');
+      setElemValue('doc-p-revisit', p.revisit || '14 днів');
+      setElemValue('doc-p-weight-control', p.weightControl || 'Щотижня');
+      setElemValue('doc-p-height-control', p.heightControl || 'Кожні 14 днів');
+      setElemValue('doc-p-lab-tests', p.labTests || '');
+
+      const pats = p.pathologies || ['none'];
+      document.querySelectorAll('input[name="pathology_cb"]').forEach(cb => { cb.checked = pats.includes(cb.value); });
+
+      setElemValue('builder-species', p.species);
+      setElemValue('builder-breed', p.breed || 'Без породи');
+      setElemValue('builder-weight', p.weight);
+      setElemValue('builder-ideal-weight', p.weight);
+      setElemText('active-patient-header', `Пацієнт: ${p.name} (${p.weight} кг)`);
+
+      onSpeciesSelectChange(p.species);
+      onPathologySelectionChanged();
+      renderPatientDocs();
+      renderDietHistoryTable();
+      renderDoctorPatients();
+    }
+
+    function selectDoctorPatient(id) {
+      const patients = JSON.parse(localStorage.getItem(STORAGE_KEY_DOCTOR) || '[]');
+      const p = patients.find(x => x.id === id);
+      if (p) {
+        loadPatientToForm(p);
+        switchDoctorTab(0);
+      }
+    }
+
+    function initFilesDB() {
+      return new Promise((resolve) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_FILES)) {
+            const store = db.createObjectStore(STORE_FILES, { keyPath: 'id', autoIncrement: true });
+            store.createIndex('patientId', 'patientId', { unique: false });
+          }
+        };
+        req.onsuccess = (e) => { dbFiles = e.target.result; resolve(dbFiles); };
+        req.onerror = () => resolve(null);
+      });
+    }
+
+    async function handlePatientFileUpload(input) {
+      if (!input.files || input.files.length === 0 || !dbFiles) return;
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const rec = {
+          patientId: currentPatient.id, name: file.name, type: file.type,
+          size: (file.size / 1024).toFixed(1) + ' KB', date: new Date().toLocaleDateString('uk-UA'), data: e.target.result
+        };
+        const tx = dbFiles.transaction([STORE_FILES], 'readwrite');
+        tx.objectStore(STORE_FILES).add(rec);
+        tx.oncomplete = () => renderPatientDocs();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderPatientDocs() {
+      if (!dbFiles) return;
+      const container = document.getElementById('patient-docs-list');
+      if (!container) return;
+      const tx = dbFiles.transaction([STORE_FILES], 'readonly');
+      const req = tx.objectStore(STORE_FILES).index('patientId').getAll(IDBKeyRange.only(currentPatient.id));
+      req.onsuccess = () => {
+        const docs = req.result || [];
+        if (docs.length === 0) {
+          container.innerHTML = '<span style="font-size:11px; color:var(--text-muted);">Документів ще не завантажено.</span>';
+          return;
+        }
+        container.innerHTML = docs.map(d => `
+          <span style="background:#fff; border:1px solid var(--border); padding:3px 8px; border-radius:4px; font-size:11px; display:inline-flex; align-items:center; gap:6px;">
+            📄 <a href="#" onclick="viewPatientDoc(${d.id}); return false;" style="color:var(--emerald); font-weight:600; text-decoration:none;">${d.name} (${d.size})</a>
+            <button onclick="deletePatientDoc(${d.id})" style="border:none; background:transparent; color:var(--red); cursor:pointer; font-weight:700;">&times;</button>
+          </span>
+        `).join('');
+      };
+    }
+
+    function viewPatientDoc(docId) {
+      const tx = dbFiles.transaction([STORE_FILES], 'readonly');
+      const req = tx.objectStore(STORE_FILES).get(docId);
+      req.onsuccess = () => {
+        const d = req.result;
+        if (!d) return;
+        const w = window.open();
+        if (d.type.includes('pdf')) w.document.write(`<iframe src="${d.data}" frameborder="0" style="width:100%; height:100vh;"></iframe>`);
+        else w.document.write(`<img src="${d.data}" style="max-width:100%; display:block; margin:auto;" />`);
+      };
+    }
+
+    function deletePatientDoc(docId) {
+      if (!confirm('Видалити документ?')) return;
+      const tx = dbFiles.transaction([STORE_FILES], 'readwrite');
+      tx.objectStore(STORE_FILES).delete(docId);
+      tx.oncomplete = () => renderPatientDocs();
+    }
+
+    function onPathologySelectionChanged() {
+      const cbs = document.querySelectorAll('input[name="pathology_cb"]:checked');
+      const selected = Array.from(cbs).map(cb => cb.value);
+      currentPatient.pathologies = selected.length > 0 ? selected : ['none'];
+
+      const badgeText = selected.length > 0 ? selected.join(' + ').toUpperCase() : 'БЕЗ ПАТОЛОГІЙ';
+      setElemText('builder-active-pathologies-badge', badgeText);
+
+      let labs = [];
+      if (selected.includes('ckd')) labs.push('SDMA, Креатинін, Сечовина, Фосфор, UPC');
+      if (selected.includes('pancreatitis')) labs.push('cPL / fPL, УЗД');
+      if (selected.includes('diabetes')) labs.push('Глюкозометрія, Фруктозамін');
+      if (selected.includes('urolithiasis_struvite') || selected.includes('urolithiasis_caox')) labs.push('Аналіз сечі з осадом');
+
+      if (labs.length === 0) labs.push('ЗАК, Б/Х');
+      setElemValue('doc-p-lab-tests', labs.join(' | '));
+
+      runDoctorRecalc();
+    }
+
+    function filterPatientsList() {
+      const input = document.getElementById('patient-search-input');
+      const q = input ? input.value.toLowerCase().trim() : '';
+      const patients = JSON.parse(localStorage.getItem(STORAGE_KEY_DOCTOR) || '[]');
+      const filtered = patients.filter(p => {
+        return (p.name || '').toLowerCase().includes(q) ||
+               (p.owner || '').toLowerCase().includes(q) ||
+               (p.phone || '').toLowerCase().includes(q) ||
+               (p.breed || '').toLowerCase().includes(q);
+      });
+      renderDoctorPatients(filtered);
+    }
+
+    function renderDoctorPatients(listToRender) {
+      const patients = listToRender || JSON.parse(localStorage.getItem(STORAGE_KEY_DOCTOR) || '[]');
+      const tbody = document.getElementById('doctor-patients-tbody');
+      if (!tbody) return;
+      if (patients.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:12px; color:var(--text-muted);">Пацієнтів не знайдено.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = patients.map(p => `
+        <tr>
+          <td><strong>${p.name}</strong></td>
+          <td>${p.species === 'dog' ? '🐶' : '🐱'} (${p.breed || 'Метис'})</td>
+          <td>${p.weight} кг</td>
+          <td><span class="badge warning">${(p.pathologies || ['none']).join(', ')}</span></td>
+          <td><strong>${p.owner || '-'}</strong><br><small style="color:var(--text-muted);">${p.phone || '-'} | ${p.email || '-'}</small></td>
+          <td><button class="btn-secondary" onclick="selectDoctorPatient(${p.id})">Відкрити медкарту</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function switchDoctorTab(index) {
+      document.querySelectorAll('.module-pane').forEach((p, i) => {
+        p.classList.toggle('active', i === index);
+      });
+      document.querySelectorAll('.nav-tabs .tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', i === index);
+      });
+      if (index === 1) runDoctorRecalc();
+    }
+
+    function switchMatrixView(view, btn) {
+      currentMatrixView = view;
+      document.querySelectorAll('.diet-subtabs .diet-subtab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      runDoctorRecalc();
+    }
+
+    function onSpeciesSelectChange(sp) {
+      const mealsSelect = document.getElementById('builder-meals');
+      if (mealsSelect) {
+        if (sp === 'cat') {
+          mealsSelect.innerHTML = `
+            <option value="4" selected>4-5 прийомів на добу</option>
+            <option value="5">Вільний доступ</option>
+            <option value="3">3 прийоми</option>
+          `;
+        } else {
+          mealsSelect.innerHTML = `
+            <option value="2" selected>2 прийоми</option>
+            <option value="3">3 прийоми</option>
+            <option value="4">4-5 прийомів</option>
+            <option value="1">1 прийом</option>
+          `;
+        }
+      }
+      setElemValue('doc-p-species', sp);
+      setElemValue('builder-species', sp);
+      updateDefaultFactor();
+    }
+
+    function updateDefaultFactor() {
+      const spEl = document.getElementById('builder-species');
+      const stageEl = document.getElementById('builder-lifestage');
+      const sp = spEl ? spEl.value : 'dog';
+      const stage = stageEl ? stageEl.value : 'adult_neutered';
+      let f = 1.6;
+      if (sp === 'dog') {
+        if (stage === 'adult_neutered') f = 1.6;
+        else if (stage === 'adult_intact') f = 1.8;
+        else if (stage === 'puppy_kitten_early') f = 3.0;
+        else if (stage === 'puppy_kitten_late') f = 2.0;
+        else if (stage === 'senior') f = 1.3;
+      } else {
+        if (stage === 'adult_neutered') f = 1.2;
+        else if (stage === 'adult_intact') f = 1.4;
+        else if (stage === 'puppy_kitten_early') f = 2.5;
+        else if (stage === 'puppy_kitten_late') f = 2.0;
+        else if (stage === 'senior') f = 1.1;
+      }
+      setElemValue('builder-factor-input', f.toFixed(2));
+    }
+
+    function openIngredientCatalog() { document.getElementById('catalog-modal').classList.add('active'); renderCatalogCards(); }
+    function closeIngredientCatalog() { document.getElementById('catalog-modal').classList.remove('active'); }
+
+    function renderCatalogCards() {
+      const grid = document.getElementById('catalog-items-grid');
+      if (!grid) return;
+      const searchInput = document.getElementById('catalog-search');
+      const search = searchInput ? searchInput.value.toLowerCase() : '';
+      const all = getAllIngredients();
+      const patientAllergies = (currentPatient.allergies || '').toLowerCase();
+
+      let items = all.filter(i => (i.name || '').toLowerCase().includes(search));
+
+      if (cloudFeeds.length > 0) {
+        const matchingFeeds = cloudFeeds.filter(cf => cf.title && cf.title.toLowerCase().includes(search));
+        matchingFeeds.forEach(cf => {
+          items.push({
+            id: 'feed_' + cf.id,
+            name: cf.title,
+            category: 'Комерційний корм',
+            ingredients_text: cf.ingredients || cf.composition,
+            cp: cf.protein_pct || 0,
+            fat: cf.fat_pct || 0,
+            me_fediaf: Math.round(((cf.protein_pct||0)*3.5 + (cf.fat_pct||0)*8.5 + (cf.carbs_pct||0)*3.5) * 10) / 10
+          });
+        });
+      }
+
+      grid.innerHTML = items.map(item => {
+        let allergyWarning = '';
+        if (patientAllergies.length > 2 && item.ingredients_text) {
+          const ingText = item.ingredients_text.toLowerCase();
+          const detected = [];
+          if (patientAllergies.includes('курк') && (ingText.includes('курк') || ingText.includes('куряч') || ingText.includes('птиц'))) detected.push('курка/птиця');
+          if (patientAllergies.includes('ялович') && (ingText.includes('ялович') || ingText.includes('телят'))) detected.push('яловичина');
+          if (patientAllergies.includes('кукурудз') && ingText.includes('кукурудз')) detected.push('кукурудза');
+
+          if (detected.length > 0) {
+            allergyWarning = `<div style="background:#fef2f2; color:#b91c1c; border:1px solid #f87171; border-radius:4px; padding:3px 6px; font-size:9.5px; margin-top:4px;">⚠️ <strong>Алерген:</strong> ${detected.join(', ')}!</div>`;
+          }
+        }
+
+        const ingredientsSnippet = item.ingredients_text ? `
+          <div style="font-size:9.5px; color:var(--text-muted); margin-top:3px; max-height:45px; overflow-y:auto; line-height:1.2; background:#fff; padding:3px 5px; border-radius:3px; border:1px solid var(--border);">
+            <strong>Склад:</strong> ${item.ingredients_text}
+          </div>
+        ` : '';
+
+        return `
+          <div class="catalog-item-card">
+            <div>
+              <strong>${item.name}</strong><br>
+              <small style="color:var(--text-muted);">${item.category}</small>
+              ${ingredientsSnippet}
+              ${allergyWarning}
+            </div>
+            <div style="display:flex; gap:4px; margin-top:6px;">
+              <input type="number" id="cat-g-${item.id}" class="form-input" style="width:65px; padding:2px 4px; text-align:center;" value="100">
+              <button class="btn-primary" style="flex:1; padding:3px 6px;" onclick="addFromCatalog('${item.id}')">+ Додати</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addFromCatalog(id) {
+      const input = document.getElementById(`cat-g-${id}`);
+      const grams = input ? (parseFloat(input.value) || 100) : 100;
+      const exist = doctorDietRows.find(r => r.id === id);
+      if (exist) exist.grams += grams;
+      else doctorDietRows.push({ id, grams, price100g: 15.0, included: true });
+      closeIngredientCatalog();
+      runDoctorRecalc();
+    }
+
+    function removeSelectedIngredients() {
+      const cbs = document.querySelectorAll('.row-select-cb:checked');
+      if (cbs.length === 0) { alert('Відмітьте інгредієнти'); return; }
+      Array.from(cbs).map(cb => parseInt(cb.getAttribute('data-index'))).sort((a,b) => b - a).forEach(i => doctorDietRows.splice(i, 1));
+      const selectAll = document.getElementById('select-all-ings-cb');
+      if (selectAll) selectAll.checked = false;
+      runDoctorRecalc();
+    }
+
+    function toggleAllIngredients(cb) { document.querySelectorAll('.row-select-cb').forEach(i => i.checked = cb.checked); }
+
+    function initMacroChart() {
+      const canvas = document.getElementById('macroChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      macroChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: ['Білок', 'Жир', 'NFE'], datasets: [{ data: [35, 35, 30], backgroundColor: ['#f472b6', '#fde047', '#5eead4'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    function updateMacroChart(cpKcal, fatKcal, nfeKcal) {
+      if (!macroChartInstance) return;
+      const total = cpKcal + fatKcal + nfeKcal;
+      if (total > 0) {
+        macroChartInstance.data.datasets[0].data = [Math.round((cpKcal / total) * 100), Math.round((fatKcal / total) * 100), Math.round((nfeKcal / total) * 100)];
+      }
+      macroChartInstance.update();
+    }
+
+    function runDoctorRecalc() {
+      const wEl = document.getElementById('builder-weight');
+      const iwEl = document.getElementById('builder-ideal-weight');
+      const spEl = document.getElementById('builder-species');
+      const oeEl = document.getElementById('builder-oe');
+      const mealsEl = document.getElementById('builder-meals');
+      const facEl = document.getElementById('builder-factor-input');
+
+      const weight = wEl ? (parseFloat(wEl.value) || 20) : 20;
+      const idealWeight = iwEl ? (parseFloat(iwEl.value) || weight) : weight;
+      const species = spEl ? spEl.value : 'dog';
+      const oe = oeEl ? (parseFloat(oeEl.value) || 100) : 100;
+      const meals = mealsEl ? (parseInt(mealsEl.value) || 2) : 2;
+      const customFactor = facEl ? (parseFloat(facEl.value) || 1.6) : 1.6;
+
+      const isObese = currentPatient.pathologies && currentPatient.pathologies.includes('obesity');
+      const rer = Math.round(70 * Math.pow(isObese ? idealWeight : weight, 0.75));
+      const mer = Math.round(rer * customFactor * (oe / 100.0));
+
+      setElemValue('builder-rer-display', `${rer} ккал`);
+      setElemValue('builder-mer-display', `${mer} ккал`);
+
+      let totalGrams = 0, totalCooked = 0, totalKcal = 0;
+      let totalCp = 0, totalFat = 0, totalMoisture = 0;
+      let totalCa = 0, totalP = 0, totalMg = 0, totalK = 0, totalNa = 0, totalFe = 0, totalCu = 0, totalZn = 0;
+      let totalLa = 0, totalAla = 0, totalEpa = 0, totalDha = 0;
+
+      const thermalMethod = (document.getElementById('thermal-method-select') || {}).value || 'boil';
+      const allIngs = getAllIngredients();
+
+      doctorDietRows.forEach(r => {
+        if (!r.included) return;
+        const g = Number(r.grams) || 0;
+        totalGrams += g;
+        let ing = allIngs.find(d => d.id === r.id) || { name: r.id, cp: 0, fat: 0, moisture: 70, me_fediaf: 120 };
+        
+        let yieldF = 1.0;
+        if (thermalMethod === 'boil') {
+          if (ing.category === 'meat' || ing.category === "М'ясо птиці" || ing.category === "М'ясо ссавців" || ing.category === 'Субпродукти' || ing.category === 'Риба') {
+            yieldF = 0.75;
+          } else if ((ing.category === 'grains' || ing.category === 'Зернові') && !r.id.includes('boiled') && !r.id.includes('cooked')) {
+            yieldF = 2.5;
+          } else if (ing.category === 'veg' || ing.category === 'Овочі') {
+            yieldF = 0.85;
+          }
+        }
+        totalCooked += g * yieldF;
+
+        const mult = g / 100;
+        totalCp += (ing.cp || 0) * mult;
+        totalFat += (ing.fat || 0) * mult;
+        totalMoisture += ((ing.moisture !== undefined ? ing.moisture : 70) * mult);
+        totalCa += (ing.ca || 0) * mult;
+        totalP += (ing.p || 0) * mult;
+        totalMg += (ing.mg || 0) * mult;
+        totalK += (ing.k || 0) * mult;
+        totalNa += (ing.na || 0) * mult;
+        totalFe += (ing.fe || 0) * mult;
+        totalCu += (ing.cu || 0) * mult;
+        totalZn += (ing.zn || 0) * mult;
+        totalLa += (ing.la || 0) * mult;
+        totalAla += (ing.ala || 0) * mult;
+        totalEpa += (ing.epa || 0) * mult;
+        totalDha += (ing.dha || 0) * mult;
+        totalKcal += (ing.me_fediaf || 140) * mult;
+      });
+
+      const totalNfe = Math.max(0, totalGrams - (totalMoisture + totalCp + totalFat));
+
+      setElemText('diet-total-weight-badge', `Загальна наважка: ${Math.round(totalGrams)} г`);
+      setElemValue('builder-actual-kcal-display', `${Math.round(totalKcal)} ккал`);
+      
+      const energyBalanceEl = document.getElementById('builder-energy-balance-badge');
+      if (energyBalanceEl && mer > 0) {
+        const pct = Math.round((totalKcal / mer) * 100);
+        if (pct >= 95 && pct <= 108) { energyBalanceEl.className = 'badge success'; energyBalanceEl.innerText = `${pct}% ✓ Оптимум`; }
+        else if (pct < 95) { energyBalanceEl.className = 'badge warning'; energyBalanceEl.innerText = `${pct}% ⚠️ Дефіцит`; }
+        else { energyBalanceEl.className = 'badge alert'; energyBalanceEl.innerText = `${pct}% ⚠️ Надлишок`; }
+      }
+
+      const caP = totalP > 0 ? (totalCa / totalP) : 1.2;
+      setElemText('ind-ca-p', `${caP.toFixed(2)} : 1`);
+
+      const znCu = totalCu > 0 ? (totalZn / totalCu) : 10;
+      setElemText('ind-zn-ca', `${(totalCa > 0 ? totalZn/totalCa : 0).toFixed(3)}`);
+      setElemText('ind-zn-cu', `Zn:Cu = ${znCu.toFixed(1)} : 1`);
+
+      const o6 = totalLa;
+      const o3 = totalAla + totalEpa + totalDha;
+      const oRatio = o3 > 0 ? (o6 / o3).toFixed(1) : '4.5';
+      setElemText('ind-omega', `${oRatio} : 1`);
+
+      const omegaStatusEl = document.getElementById('ind-omega-status');
+      if (omegaStatusEl) {
+        const numRatio = parseFloat(oRatio);
+        if (numRatio >= 3.0 && numRatio <= 6.0) {
+          omegaStatusEl.innerText = 'Оптимум (3–5:1) ✓';
+          omegaStatusEl.style.color = 'var(--emerald)';
+        } else if (numRatio < 3.0) {
+          omegaStatusEl.innerText = 'Надлишок ω3 (<3:1) ⚠️';
+          omegaStatusEl.style.color = 'var(--amber)';
+        } else {
+          omegaStatusEl.innerText = 'Дефіцит ω3 (>6:1) ⚠️';
+          omegaStatusEl.style.color = 'var(--red)';
+        }
+      }
+
+      const cookedTotal = Math.round(totalCooked);
+      const perMealGrams = Math.round(cookedTotal / meals);
+      const thermText = document.getElementById('thermal-summary-text');
+      if (thermText) {
+        thermText.innerHTML = `Сира маса: <strong>${Math.round(totalGrams)} г</strong> ➔ Готова порція: <strong>${cookedTotal} г</strong> | На 1 прийом (${meals} р/д): <strong>${perMealGrams} г</strong>`;
+      }
+
+      updateMacroChart(totalCp * 3.5, totalFat * 8.5, totalNfe * 3.5);
+      renderMatrixTable({ grams: totalGrams, moisture: totalMoisture, kcal: totalKcal, cp: totalCp, fat: totalFat, ca: totalCa, p: totalP, mg: totalMg, k: totalK, na: totalNa, fe: totalFe, cu: totalCu, zn: totalZn }, { mer });
+    }
+
+    function renderMatrixTable(totals, energy) {
+      const thead = document.getElementById('matrix-thead');
+      const tbody = document.getElementById('matrix-tbody');
+      if (!thead || !tbody) return;
+      const allIngs = getAllIngredients();
+      const mealsEl = document.getElementById('builder-meals');
+      const meals = mealsEl ? (parseInt(mealsEl.value) || 2) : 2;
+      const kFactor = (energy && energy.mer) ? (energy.mer / 1000.0) : 1.0;
+
+      if (currentMatrixView === 'macro') {
+        thead.innerHTML = `
+          <tr>
+            <th style="width:25px;"><input type="checkbox" id="select-all-ings-cb" onclick="toggleAllIngredients(this)"></th>
+            <th>Інгредієнт / Корм</th><th>Грам / доба</th><th>Грам / порцію</th><th>Вкл</th><th>Вода %</th><th>DM %</th><th>CP/DM %</th><th>CFa/DM %</th><th>Ціна</th><th>Сума/день</th><th>ME (ккал)</th>
+          </tr>
+        `;
+
+        let rows = doctorDietRows.map((r, idx) => {
+          const ing = allIngs.find(d => d.id === r.id) || { name: r.id, cp: 0, fat: 0, moisture: 70, me_fediaf: 120 };
+          const dm = Math.max(1, 100 - (ing.moisture || 70));
+          const cpDm = ((ing.cp || 0) / dm * 100).toFixed(1);
+          const fatDm = ((ing.fat || 0) / dm * 100).toFixed(1);
+          const perMeal = Math.round((r.grams || 0) / meals);
+          const me = Math.round((r.grams / 100) * (ing.me_fediaf || 140));
+
+          return `
+            <tr>
+              <td><input type="checkbox" class="row-select-cb" data-index="${idx}"></td>
+              <td style="font-weight:500; color:var(--emerald); cursor:pointer;" onclick="openIngredientCatalog()">${ing.name}</td>
+              <td><input type="number" class="form-input" style="width:55px; padding:2px 4px; text-align:center;" value="${r.grams}" onchange="doctorDietRows[${idx}].grams=parseFloat(this.value)||0; runDoctorRecalc();"></td>
+              <td style="color:var(--text-muted);">${perMeal} г</td>
+              <td><input type="checkbox" ${r.included ? 'checked' : ''} onchange="doctorDietRows[${idx}].included=this.checked; runDoctorRecalc();"></td>
+              <td>${ing.moisture || 70}%</td><td>${dm.toFixed(0)}%</td><td>${cpDm}%</td><td>${fatDm}%</td>
+              <td>${r.price100g || 0} ₴</td>
+              <td>${(((r.grams || 0) / 100) * (r.price100g || 0)).toFixed(1)} ₴</td>
+              <td><strong>${me}</strong></td>
+            </tr>
+          `;
+        }).join('');
+
+        const targetCpG = Math.round(25 * kFactor);
+        const targetFatG = Math.round(10 * kFactor);
+
+        tbody.innerHTML = `
+          ${rows}
+          <tr style="background:#f8fafc; font-weight:700; color:var(--text-muted); border-top:2px solid var(--border);">
+            <td></td><td>🎯 СТАТИЧНА НОРМА NRC/ДОБУ:</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>≥ ${targetCpG} г білка</td><td>≥ ${targetFatG} г жиру</td><td>—</td><td>—</td><td>${energy ? energy.mer : 0} ккал</td>
+          </tr>
+          <tr style="background:var(--green-light); font-weight:700; color:var(--emerald-deep);">
+            <td></td><td>📊 РАЗОМ У РАЦІОНІ:</td><td>${Math.round(totals.grams)} г</td><td>${Math.round(totals.grams / meals)} г</td><td>✓</td><td>—</td><td>—</td><td>${totals.cp.toFixed(1)} г</td><td>${totals.fat.toFixed(1)} г</td><td>—</td><td>—</td><td>${Math.round(totals.kcal)} ккал</td>
+          </tr>
+        `;
+      } else {
+        thead.innerHTML = `
+          <tr>
+            <th style="width:25px;"><input type="checkbox" id="select-all-ings-cb" onclick="toggleAllIngredients(this)"></th>
+            <th>Інгредієнт</th><th>Грам</th><th>Вкл</th><th>Ca (мг)</th><th>P (мг)</th><th>Mg (мг)</th><th>K (мг)</th><th>Na (мг)</th><th>Fe (мг)</th><th>Cu (мг)</th><th>Zn (мг)</th>
+          </tr>
+        `;
+
+        let rows = doctorDietRows.map((r, idx) => {
+          const ing = allIngs.find(d => d.id === r.id) || { name: r.id };
+          const mult = (r.grams || 0) / 100;
+          return `
+            <tr>
+              <td><input type="checkbox" class="row-select-cb" data-index="${idx}"></td>
+              <td>${ing.name}</td>
+              <td><input type="number" class="form-input" style="width:55px; padding:2px 4px; text-align:center;" value="${r.grams}" onchange="doctorDietRows[${idx}].grams=parseFloat(this.value)||0; runDoctorRecalc();"></td>
+              <td><input type="checkbox" ${r.included ? 'checked' : ''} onchange="doctorDietRows[${idx}].included=this.checked; runDoctorRecalc();"></td>
+              <td>${Math.round(mult * (ing.ca || 0))}</td><td>${Math.round(mult * (ing.p || 0))}</td><td>${Math.round(mult * (ing.mg || 0))}</td><td>${Math.round(mult * (ing.k || 0))}</td><td>${Math.round(mult * (ing.na || 0))}</td><td>${(mult * (ing.fe || 0)).toFixed(1)}</td><td>${(mult * (ing.cu || 0)).toFixed(2)}</td><td>${(mult * (ing.zn || 0)).toFixed(1)}</td>
+            </tr>
+          `;
+        }).join('');
+
+        tbody.innerHTML = `
+          ${rows}
+          <tr style="background:var(--green-light); font-weight:700; color:var(--emerald-deep);">
+            <td></td><td>📊 РАЗОМ У РАЦІОНІ:</td><td>${Math.round(totals.grams)} г</td><td>✓</td>
+            <td>${Math.round(totals.ca)}</td><td>${Math.round(totals.p)}</td><td>${Math.round(totals.mg)}</td><td>${Math.round(totals.k)}</td><td>${Math.round(totals.na)}</td><td>${totals.fe.toFixed(1)}</td><td>${totals.cu.toFixed(2)}</td><td>${totals.zn.toFixed(1)}</td>
+          </tr>
+        `;
+      }
+    }
+
+    function openQuickCalcModal() { alert('Quick Calc активний у робочому режимі.'); }
+    function openReportModal() { window.print(); }
+    function directPrintReport() { window.print(); }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      initSupabaseFromStorage();
+      await initFilesDB();
+      initMacroChart();
+      renderDoctorPatients();
+      loadPatientToForm(currentPatient);
+      updateDefaultFactor();
+      runDoctorRecalc();
+    });
+  </script>
+</body>
+</html>

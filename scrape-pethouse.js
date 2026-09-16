@@ -96,11 +96,16 @@ async function scrapeMultipleCategories() {
             if (text.length > 20) composition += text + '\n\n';
           });
 
-          if (!composition) {
-            composition = page$('body').text().substring(0, 5000);
-          }
 
           const cleanComposition = composition.replace(/\s+/g, ' ').trim();
+
+          // Пропускаємо товар, якщо реальний склад не знайдено в цільових селекторах.
+          // Раніше тут був fallback на page$('body').text(), який записував у базу
+          // навігацію та розмітку сторінки замість складу.
+          if (!cleanComposition || cleanComposition.length < 30) {
+            console.log(`Пропущено (склад не знайдено): ${title}`);
+            continue;
+          }
 
           // Зберігаємо в Supabase
           const { error: insertError } = await supabase
